@@ -1,4 +1,5 @@
 <?php
+require('lib/config.php');
 require_once('lib/API-allocine.php');
 require_once('lib/API-TMDb.php');
 require_once('lib/functions.php');
@@ -44,8 +45,20 @@ $genres = substr($genres,0,-1);
 			<p><form method="POST" action="update.php?link=<?php echo urlencode($_GET['link']); ?>&oldcode=<?php echo $_GET['oldcode'];?>&action=auto" class="nyroModal" style="text-align:center;">
 Rechercher un film: <input type="text" name="recherche" class="form">
 <select name="database">
-	<option value="Allocine">Allocine</option>
-	<option value="TMDb">TMDb</option>
+<?php
+	if ($MOVIES_DATABASE == "TMDb") 
+	{
+	echo '<option value="TMDb">TMDb</option>';
+	echo '<option value="Allocine">Allocine</option>';
+	}
+	else
+	{
+	echo '<option value="Allocine">Allocine</option>';
+	echo '<option value="TMDb">TMDb</option>';
+	}
+//	<option value="Allocine">Allocine</option>
+//	<option value="TMDb">TMDb</option>
+?>
 </select>
 			<input type="submit" value="Rechercher" class="form">
 			</form></p>
