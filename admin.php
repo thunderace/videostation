@@ -123,7 +123,7 @@ if(!$root) die (include('login.php'));
 	
 	<div class="header_right demo" style="margin-right:8px;padding-top:1px;">
 	<a href="#param"><button id="parameters" value="Infos">Infos</button></a>
-	<div class="ui-widget-content" id="param" aria-label="Login options">
+	<div class="ui-widget-content" id="param" aria-label="Login options" style="float:right;">
 		<?php if(isset($_SESSION['user'])) echo '['.$_SESSION['user'].'] | <a href="index.php?action=logout">Logout</a>';
 		else echo '| <a href="login.php">Login</a>';
 		if ($root) echo ' | <a href="index.php">'.home.'</a>';
@@ -337,21 +337,24 @@ $( "#tabs" ).tabs({
 /***
 	HEADER
 	***/
-	$('#search').button({
-	icons: {
-                primary: "ui-icon-search"
-            },
-            text:false
-            });
-    $('#parameters').button({
+   $('#parameters').button({
 	icons: {
                 primary: "ui-icon-info",
                 secondary: "ui-icon-triangle-1-s"
             },
             text:false
             });   
-	$('#param').popup();
-/**
+	
+	$('#param').hide();
+	$('#parameters').click(function(){
+	if($('#param').is(':hidden')){
+	$('#param').slideDown();
+	}
+	else {
+	$('#param').slideUp();
+	}
+	});
+	/**
     FOOTER
     **/
     $('footer div.license').hover(function(){

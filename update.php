@@ -84,7 +84,12 @@ Rechercher un film: <input type="text" name="recherche" class="form">
 			<tr><td><b><?php echo trailer;?>:</b></td><td><input type="text" size="40" name="trailer" value="<?php if($data['trailer']!='0') echo $data['trailer'];?>"></td></tr>
 			<tr><td colspan="2"><input type="submit" value="valider"></td></tr>
 			</table>
-			</form></p>
+			</form>
+			<form method="POST" action="update.php?action=erase&oldcode=<?php echo $_GET['oldcode'];?>&link=<?php echo urlencode($_GET['link']);?>" class="nyroModal" enctype="multipart/form-data">
+			<input type="submit" value="supprimer">
+			</form>
+			</p>
+			
 		</div>
 	</div>
 <?php
@@ -101,8 +106,20 @@ switch($_GET['action']){
 	?>
 	<form method="POST" action="update.php?link=<?php echo urlencode($_GET['link']); ?>&oldcode=<?php echo $_GET['oldcode'];?>&action=auto" class="nyroModal" style="text-align:center;">Nouvelle recherche : <input type="text" name="recherche" class="form">
 <select name="database">
-	<option value="Allocine">Allocine</option>
-	<option value="TMDb">TMDb</option>
+<?php
+	if ($MOVIES_DATABASE == "TMDb") 
+	{
+	echo '<option value="TMDb">TMDb</option>';
+	echo '<option value="Allocine">Allocine</option>';
+	}
+	else
+	{
+	echo '<option value="Allocine">Allocine</option>';
+	echo '<option value="TMDb">TMDb</option>';
+	}
+//	<option value="Allocine">Allocine</option>
+//	<option value="TMDb">TMDb</option>
+?>
 </select>
 			<input type="submit" value="Rechercher" class="form">
 			</form>
@@ -212,11 +229,28 @@ switch($_GET['action']){
 	echo '<img src="images/check.png" alt="ok">'.$_GET['link'].' mis &agrave; jour!<br />Recharger la page pour prendre les modifications en compte.</div>';
 	break;
 	
+	
+	case 'erase':
+	if($_GET['oldcode'] != 0){ //erase imdbid
+	$sql = "DELETE FROM movie_genre WHERE fk_id_movie = '".$_GET['oldcode']."'";
+	mysql_query($sql) or die ('Erreur SQL '.mysql_error());
+	}
+	// eraase id_movie where link = link
+	$sql = "UPDATE movies SET id_movie=0, name=0, original_name=0, length=0, countries=0, directors=0, actors=0, synopsis=0,poster=0, trailer=0, note=0, votes=0, year=0 WHERE link = '".$_GET['link']."'";
+	mysql_query($sql) or die ('Erreur SQL '.mysql_error());
+	
+	echo '<div style="text-align:center;">';
+	echo '<img src="images/check.png" alt="ok">'.$_GET['link'].' mis &agrave; jour!<br />Recharger la page pour prendre les modifications en compte.</div>';
+
+	break;
+	
 	case 'manual':
+
 	if($_GET['oldcode'] != 0){
 	$sql = "DELETE FROM movie_genre WHERE fk_id_movie = '".$_GET['oldcode']."'";
 	mysql_query($sql) or die ('Erreur SQL '.mysql_error());
 	}
+	
 	$code = random_string(8);
 	if(!empty($_FILES['poster']['name'])){
 		$dossier = 'images/poster_small/';
@@ -226,27 +260,27 @@ switch($_GET['action']){
 		$extension = strrchr($_FILES['poster']['name'], '.');
 		//Début des vérifications de sécurité...
 		if(!in_array($extension, $extensions)){ //Si l'extension n'est pas dans le tableau
-     		$erreur = 'Vous devez uploader un fichier de type jpg';
-     		echo $extension;
+			$erreur = 'Vous devez uploader un fichier de type jpg';
+			echo $extension;
 		}
 		if($taille>$taille_maxi){
-     		$erreur = 'Le fichier est trop gros...';
+			$erreur = 'Le fichier est trop gros...';
 		}
 		if(!isset($erreur)){ //S'il n'y a pas d'erreur, on upload
-    		 //On formate le nom du fichier ici...
-    	
-     		if(move_uploaded_file($_FILES['poster']['tmp_name'], $dossier.$code.'.jpg')){ //Si la fonction renvoie TRUE, c'est que ça a fonctionné...
-     		$poster_path = 'images/poster_small/'.$code.'.jpg';
-     		reduire_image($dossier.$code.'.jpg','150','250',$dossier);
-     		}
-     		else //Sinon (la fonction renvoie FALSE).
-     		{
-        	  echo info('Echec de l\'upload !');
-     		}
+			 //On formate le nom du fichier ici...
+		
+			if(move_uploaded_file($_FILES['poster']['tmp_name'], $dossier.$code.'.jpg')){ //Si la fonction renvoie TRUE, c'est que ça a fonctionné...
+			$poster_path = 'images/poster_small/'.$code.'.jpg';
+			reduire_image($dossier.$code.'.jpg','150','250',$dossier);
+			}
+			else //Sinon (la fonction renvoie FALSE).
+			{
+			  echo info('Echec de l\'upload !');
+			}
 		}
 		else
 		{
-     		echo $erreur;
+			echo $erreur;
 		}
 	}
 	else {
@@ -307,7 +341,6 @@ switch($_GET['action']){
 		mysql_query($insert) or die ('Erreur SQL : '.mysql_error());
 		}
 	}
-
 
 	echo '<div style="text-align:center;">';
 	if(is_file('images/poster_small/'.$code.'.jpg')) echo '<img src="images/poster_small/'.$code.'.jpg" alt="Poster"><br>';
