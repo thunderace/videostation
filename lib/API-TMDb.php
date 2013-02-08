@@ -69,13 +69,18 @@ public function movieSearch($keywords) {
 		if($this->data['0'] == 'Nothing found.') $this->result = array();
 		else{
 		$annee = explode('-',$this->data['0']['released']);
+        
+        $image = "";
+        if (!empty($this->data['0']['posters']['1']['image']['url']))
+            $image = $this->data['0']['posters']['1']['image']['url'];
+        
 		$this->result = array(
 			'code'=>$this->data['0']['id'],
 			'titre'=>$this->data['0']['name'],
 			'titre-original'=>$this->data['0']['original_name'],
 			'annee'=>$annee[0],
 			'note-public'=>round(($this->data['0']['rating'])/2,1),
-			'affiche'=>$this->data['0']['posters']['1']['image']['url']
+			'affiche'=>$image
 		);
 		
 		}
@@ -92,6 +97,11 @@ public function movieMultipleSearch($keywords,$count) {
 		else{
 		for($i=0;$i<$count;$i++){
 		if(empty($this->data[$i]['id'])) break;
+        if (empty($this->data[$i]['posters']['1']['image']['url']))
+            $poster = "";
+        else
+            $poster = $this->data[$i]['posters']['1']['image']['url'];
+        
 		$annee = explode('-',$this->data[$i]['released']);
 		$this->result[$i] = array(
 			'code'=>$this->data[$i]['id'],
@@ -99,7 +109,7 @@ public function movieMultipleSearch($keywords,$count) {
 			'titre-original'=>$this->data[$i]['original_name'],
 			'annee'=>$annee[0],
 			'note-public'=>round(($this->data[$i]['rating'])/2,1),
-			'affiche'=>$this->data[$i]['posters']['1']['image']['url']
+			'affiche'=>$poster
 		);
 		}
 		}
@@ -109,6 +119,10 @@ public function movieMultipleSearch($keywords,$count) {
 	}
 	
 public function movieInfos($id){
+        $nationality = "";
+        $genre = "";
+        $director = "";
+        $actors = "";
 		$this->content = @file_get_contents($this->get_url_movie($id));
 		//if($this->content == FALSE) $this->content = file_get_contents($this->get_url_movie($id));
 		$i=1;
@@ -155,10 +169,15 @@ public function movieInfos($id){
 		}
 		$actors = rtrim($actors,', ');
 		
+        if (empty($this->data['0']['posters']['2']['image']['url']))
+            $imageUrl = "";
+        else
+            $imageUrl = $this->data['0']['posters']['2']['image']['url'];
+        
 		$this->result = array(
 			'titre-original'=>$this->data['0']['original_name'],
 			'titre'=>$this->data['0']['name'],
-			'affiche'=>$this->data['0']['posters']['2']['image']['url'],
+			'affiche'=>$imageUrl,
 			'annee'=>$annee[0],
 			'longueur'=>$this->data['0']['runtime'],
 			'note-public'=>($this->data['0']['rating']/2),

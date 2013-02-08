@@ -3,7 +3,7 @@ require_once("lib/API-allocine.php");
 require_once('lib/API-TMDb.php');
 require_once('lib/functions.php');
 require_once('lib/lang.php');
-connect($PASSWORD_SQL,$DATABASE);
+connect($USER_SQL,$PASSWORD_SQL,$DATABASE);
 $link=addslashes(urldecode($_GET['link']));
 
 if (is_serie($SERIES_DIR)){
@@ -13,6 +13,7 @@ $infos = mysql_fetch_array($req);
 $serie = true;
 }
 else{
+$genres = "";
 $sql = "SELECT * FROM movies WHERE link='".$link."'";
 $req = mysql_query($sql) or die ('Erreur sql '.$sql.' '.mysql_error());
 $infos = mysql_fetch_array($req);
@@ -95,7 +96,7 @@ echo '<div id="content">';
 ?>
 </div>
 <?php
-if (!$modal){
+if (!$MODAL){
 echo '</body>';
 echo '</html>';
 }

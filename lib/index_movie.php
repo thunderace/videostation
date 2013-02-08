@@ -6,11 +6,11 @@ require('config.php');
 require('API-allocine.php');
 require('API-TMDb.php');
 require('functions.php');
-connect($PASSWORD_SQL,$DATABASE);
+connect($USER_SQL,$PASSWORD_SQL,$DATABASE);
 
 $link=urldecode($_GET['link']);
 $dir=urldecode($_GET['rep']);
-
+$size=0;
 
 
 $sql = mysql_query("SELECT link FROM movies WHERE link='".mysql_real_escape_string($link)."'");

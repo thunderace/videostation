@@ -1,6 +1,6 @@
 <?php
-require('config.php');
-require('lang.php');
+require_once('config.php');
+require_once('lang.php');
 /**********************************************************************************************************
 
 								========FONCTIONS========
@@ -8,17 +8,19 @@ require('lang.php');
 
  
 **********************************************************************************************************/
+$root = true;
 
-function connect($pass, $basename){
-$db = mysql_connect('localhost','root',$pass);
+function connect($user, $pass, $basename){
+$db = mysql_connect('localhost',$user,$pass);
 mysql_select_db($basename,$db);
 }
+
 
 function repertoire($dir){
 
 $edir = str_replace('./video',home,$dir);
 $edir = explode('/',$edir);
-
+$redir = "";
 echo '<img src="images/home.png" alt="home"> ';
 for ($i=0;$i<=(count($edir)-1);$i++) {
 	if (empty($redir)) $slash='';
@@ -28,7 +30,7 @@ for ($i=0;$i<=(count($edir)-1);$i++) {
 	echo '<a href="?rep='.urlencode($redir).'">'.$edir[$i].'</a> / ';
 	}
 }
-
+/*
 function login($user,$pass,$cookie,$port,$secure){
 if($secure) $http = 'https://';
 else $http = 'http://';
@@ -44,7 +46,6 @@ if (json_decode($reponseLogin)->{'success'}){
 }
 else echo '<div style="text-align:center;color:red;">Mauvais login/password</div>';
 }
-
 function logout(){
 session_unset();
 session_destroy();
@@ -52,6 +53,7 @@ session_destroy();
 setcookie('user');
 
 }
+*/
 
 function length($string,$maxlenght){
 	if(strlen($string)>$maxlenght){
@@ -136,6 +138,7 @@ else return false;
 }
 
 function banner_serie(){
+    global $DELETED_WORDS;
 	$allo = new AlloCine();
 	$infos = explode('/',urldecode($_GET['rep']));
 	if(count($infos)>= 4){
@@ -199,14 +202,14 @@ function rename_link($dir,$HIDDEN_FILES){
 	}
 }
 
-function login_check($login, $port, $secure){
+function login_check($login, $secure){
 	if($login){
 		if(!empty($_COOKIE['user'])){
 		$_SESSION['user'] = $_COOKIE['user'];
 		}
 	}
-	if($_GET['action'] == 'logout') logout();
-	if($_GET['action'] == 'login') login($_POST['user'],$_POST['pass'],$_POST['cookie'],$port,$secure);
+//	if($_GET["action"] == 'logout') logout();
+//	if($_GET["action"] == 'login') login($_POST['user'],$_POST['pass'],$_POST['cookie'],$port,$secure);
 }
 
 function admin($root){

@@ -2,7 +2,7 @@
 require('lib/config.php');
 require('lib/API-allocine.php');
 require('lib/functions.php');
-connect($PASSWORD_SQL,$DATABASE);
+connect($USER_SQL,$PASSWORD_SQL,$DATABASE);
 $listmovies = listage('./video',$HIDDEN_FILES,$EXT);
 $moviesinbase = moviesinbase();
 foreach ($moviesinbase as $movie){

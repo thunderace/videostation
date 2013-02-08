@@ -3,8 +3,7 @@ require('lib/config.php');
 require_once('lib/API-allocine.php');
 require_once('lib/API-TMDb.php');
 require_once('lib/functions.php');
-connect($PASSWORD_SQL,$DATABASE);
-
+connect($USER_SQL,$PASSWORD_SQL,$DATABASE);
 ?>
 <!DOCTYPE html>
 <html>
@@ -26,6 +25,7 @@ connect($PASSWORD_SQL,$DATABASE);
 <div id="content">
 <?php
 if(empty($_GET['action'])){
+$genres = "";
 $sql = "SELECT * FROM movies WHERE link='".htmlspecialchars(addslashes(urldecode($_GET['link'])))."'";
 $req = mysql_query($sql) or die ('Erreur sql: '.mysql_error());
 $data = mysql_fetch_array($req);
@@ -94,6 +94,8 @@ Rechercher un film: <input type="text" name="recherche" class="form">
 	</div>
 <?php
 }
+else
+{
 switch($_GET['action']){
 	case 'auto':
 	if($_POST['database'] == 'Allocine') $moviesSearch = new AlloCine($LANGUAGE);
@@ -127,7 +129,9 @@ switch($_GET['action']){
 	echo '<ul class="movielist">';
 	for($i=0;$i<count($recherche);$i++){
 		echo '<li>';
-		if(empty($recherche[$i]['affiche'])) echo '<img src="images/movie.png" alt="video" />';
+        $img_link = "";
+		if(empty($recherche[$i]['affiche'])) 
+            echo '<img src="images/movie.png" alt="video" />';
 		else {
 			if($_POST['database'] == 'Allocine'){
 			$img = explode('/',$recherche[$i]['affiche']);
@@ -347,6 +351,7 @@ switch($_GET['action']){
 	echo '<img src="images/check.png" alt="ok">'.$_GET['link'].' mis &agrave; jour!<br />Recharger la page pour prendre les modifications en compte.</div>';
 	break;
 
+}
 }
 ?>
 </div>

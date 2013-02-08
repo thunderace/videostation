@@ -100,41 +100,117 @@ public function movieInfos($id){
 		$this->data = json_decode($this->content,true);
 		unset($this->data['movie']['castMember']);
 	
-		$nb = count($this->data['movie']['nationality'])-1;
+        $nb = -1;
+        $nationality = "";
+        if (!empty($this->data['movie']['nationality']))
+		    $nb = count($this->data['movie']['nationality'])-1;
+
 		for($i=0; $i<=$nb; $i++){
 			$nationality = $nationality.$this->data['movie']['nationality'][$i]['$'];
 				if ($i != $nb) $nationality = $nationality.', ';
 		}	
 		$this->data['movie']['nationality'] = $nationality;
-	
-		$nb = count($this->data['movie']['genre'])-1;
-		for($i=0; $i<=$nb; $i++){
+
+        $nb = -1;
+        $genre = "";
+
+        if (!empty($this->data['movie']['genre']))
+		    $nb = count($this->data['movie']['genre'])-1;
+
+        for($i=0; $i<=$nb; $i++){
 			$genre = $genre.$this->data['movie']['genre'][$i]['$'];
 				if ($i != $nb) $genre = $genre.', ';
 		}
 		$this->data['movie']['genre'] = $genre;
 	
-		$time[0] = floor($this->data['movie']['runtime']/3600);//heure
-		$time[1] = (($this->data['movie']['runtime']/3600)-$time[0])*60;//minutes
+        if (empty($this->data['movie']['runtime'])) {
+            $time[0] = 0;
+            $time[1] = 0;
+        }
+        else {
+        	$time[0] = floor($this->data['movie']['runtime']/3600);//heure
+		    $time[1] = (($this->data['movie']['runtime']/3600)-$time[0])*60;//minutes
+        }
 	
 		$this->data['movie']['runtime'] = $time[0].'h'.$time[1].'min';
-	
+        
+    	if (empty($this->data['movie']['castingShort']['actors'])) 
+            $actors = "";
+		else 
+            $actors = $this->data['movie']['castingShort']['actors'];
+        
+    	if (empty($this->data['movie']['castingShort']['directors'])) 
+            $directors = "";
+        else 
+            $directors = $this->data['movie']['castingShort']['directors'];
+
+        if (empty($this->data['movie']['statistics']['pressRating'])) 
+            $pressRating = "";
+        else 
+            $pressRating = $this->data['movie']['statistics']['pressRating'];
+
+        if (empty($this->data['movie']['statistics']['userRating'])) 
+            $userRating = "";
+        else 
+            $userRating = $this->data['movie']['statistics']['userRating'];
+
+        if (empty($this->data['movie']['poster']['href'])) 
+            $poster = "";
+        else 
+            $poster = $this->data['movie']['poster']['href'];
+
+        if (empty($this->data['movie']['originalTitle'])) 
+            $originalTitle = "";
+        else 
+            $originalTitle = $this->data['movie']['originalTitle'];
+
+        if (empty($this->data['movie']['productionYear'])) 
+            $productionYear = "";
+        else 
+            $productionYear = $this->data['movie']['productionYear'];
+                
+        if (empty($this->data['movie']['synopsis'])) 
+            $synopsis = "";
+        else 
+            $synopsis = $this->data['movie']['synopsis'];
+
+		if (empty($this->data['movie']['title'])) 
+            $title = $this->data['movie']['originalTitle'];
+		else 
+            $title = $this->data['movie']['title'];
+
+    	if (empty($this->data['movie']['statistics']['pressReviewCount'])) 
+            $pressReviewCount = "";
+		else 
+            $pressReviewCount = $this->data['movie']['statistics']['pressReviewCount'];
+        
+        if (empty($this->data['movie']['statistics']['userReviewCount'])) 
+            $userReviewCount = "";
+		else 
+            $userReviewCount = $this->data['movie']['statistics']['userReviewCount'];
+
+        if (empty($this->data['movie']['trailer']['href'])) 
+            $trailer = "";
+    	else 
+            $trailer = $this->data['movie']['trailer']['href'];
+
+
 		$this->result = array(
-			'titre-original'=>$this->data['movie']['originalTitle'],
-			'titre'=>$this->data['movie']['title'],
-			'affiche'=>$this->data['movie']['poster']['href'],
-			'annee'=>$this->data['movie']['productionYear'],
+			'titre-original'=>$originalTitle,
+			'titre'=>$title,
+			'affiche'=>$poster,
+			'annee'=>$productionYear,
 			'longueur'=>$this->data['movie']['runtime'],
-			'note-press'=>$this->data['movie']['statistics']['pressRating'],
-			'note-public'=>$this->data['movie']['statistics']['userRating'],
-			'nb-note-press'=>$this->data['movie']['statistics']['pressReviewCount'],
-			'nb-note-public'=>$this->data['movie']['statistics']['userReviewCount'],
+			'note-press'=>$pressRating,
+			'note-public'=>$userRating,
+			'nb-note-press'=>$pressReviewCount,
+			'nb-note-public'=>$userReviewCount,
 			'pays'=>$this->data['movie']['nationality'],
 			'genres'=>$this->data['movie']['genre'],
-			'realisateur'=>$this->data['movie']['castingShort']['directors'],
-			'acteurs'=>$this->data['movie']['castingShort']['actors'],
-			'resume'=>$this->data['movie']['synopsis'],
-			'bande-annonce'=>$this->data['movie']['trailer']['href']);
+			'realisateur'=>$directors,
+			'acteurs'=>$actors,
+			'resume'=>$synopsis,
+			'bande-annonce'=>$trailer);
 					
 		//$this->browseArray($this->result);
 	
@@ -238,20 +314,59 @@ public function movieMultipleSearch($keywords,$count) {
 		
 		$this->data = json_decode($this->content,true);
 		$this->result = array();
-			for ($i=0;$i<$count;$i++){
-			if (empty($this->data['feed']['movie'][$i]['code'])) break;
-			if (empty($this->data['feed']['movie'][$i]['title'])) $title = $this->data['feed']['movie'][$i]['originalTitle'];
-			else $title = $this->data['feed']['movie'][$i]['title'];
+		for ($i=0;$i<$count;$i++){
+			if (empty($this->data['feed']['movie'][$i]['code'])) 
+                break;
+			if (empty($this->data['feed']['movie'][$i]['title'])) 
+                $title = $this->data['feed']['movie'][$i]['originalTitle'];
+			else 
+                $title = $this->data['feed']['movie'][$i]['title'];
+    		if (empty($this->data['feed']['movie'][$i]['castingShort']['actors'])) 
+                $actors = "";
+    		else 
+                $actors = $this->data['feed']['movie'][$i]['castingShort']['actors'];
+            
+        	if (empty($this->data['feed']['movie'][$i]['castingShort']['directors'])) 
+                $directors = "";
+            else 
+                $directors = $this->data['feed']['movie'][$i]['castingShort']['directors'];
+
+            if (empty($this->data['feed']['movie'][$i]['statistics']['pressRating'])) 
+                $pressRating = "";
+            else 
+                $pressRating = $this->data['feed']['movie'][$i]['statistics']['pressRating'];
+
+            if (empty($this->data['feed']['movie'][$i]['statistics']['userRating'])) 
+                $userRating = "";
+            else 
+                $userRating = $this->data['feed']['movie'][$i]['statistics']['userRating'];
+
+            if (empty($this->data['feed']['movie'][$i]['poster']['href'])) 
+                $poster = "";
+            else 
+                $poster = $this->data['feed']['movie'][$i]['poster']['href'];
+
+            if (empty($this->data['feed']['movie'][$i]['originalTitle'])) 
+                $originalTitle = "";
+            else 
+                $originalTitle = $this->data['feed']['movie'][$i]['originalTitle'];
+
+            if (empty($this->data['feed']['movie'][$i]['productionYear'])) 
+                $productionYear = "";
+            else 
+                $productionYear = $this->data['feed']['movie'][$i]['productionYear'];
+
+
 			$this->result[$i] = array(
 				'code'=>$this->data['feed']['movie'][$i]['code'],
 				'titre'=>$title,
-				'titre-original'=>$this->data['feed']['movie'][$i]['originalTitle'],
-				'annee'=>$this->data['feed']['movie'][$i]['productionYear'],
-				'acteurs'=>$this->data['feed']['movie'][$i]['castingShort']['actors'],
-				'realisateur'=>$this->data['feed']['movie'][$i]['castingShort']['directors'],
-				'note-presse'=>round($this->data['feed']['movie'][$i]['statistics']['pressRating'],1),
-				'note-public'=>round($this->data['feed']['movie'][$i]['statistics']['userRating'],1),
-				'affiche'=>$this->data['feed']['movie'][$i]['poster']['href']);
+				'titre-original'=>$originalTitle,
+				'annee'=>$productionYear,
+				'acteurs'=>$actors,
+				'realisateur'=>$directors,
+				'note-presse'=>round($pressRating,1),
+				'note-public'=>round($userRating,1),
+				'affiche'=>$poster);
 			}
 			//$this->browseArray($this->data);
 		return $this->result;

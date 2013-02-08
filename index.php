@@ -1,22 +1,30 @@
 <?php
 $time_start = microtime(true);
 session_start();
-require('lib/config.php');
-require('lib/API-allocine.php');
-require('lib/functions.php');
-require('lib/lang.php');
-login_check($LOGIN,$PORT_SYNO,$SECURE);
+require_once('lib/config.php');
+require_once('lib/API-allocine.php');
+require_once('lib/functions.php');
+require_once('lib/lang.php');
 if($INSTALL){
-if($_GET['action'] == 'login') echo '<script>document.location.href="index.php"</script>';
-die (include('INSTALL.php'));
- }
-$root = admin($root);
-if($LOGIN){ if(empty($_SESSION['user'])) die (include('login.php'));}
-$dir = rep(urldecode($_GET['rep']));
-$tri = tri($_GET['tri']);
-connect($PASSWORD_SQL,$DATABASE);
-if(is_serie($SERIES_DIR)) $db = 'series';
-else $db = 'movies';
+	echo '<script>document.location.href="index.php"</script>';
+	die (include('INSTALL.php'));
+}
+if (isset($_GET['rep']))
+    $dir = rep(urldecode($_GET['rep']));
+else {
+    $dir = rep(urldecode($VIDEO_DIR));
+    $_GET['rep'] = $VIDEO_DIR;
+}
+if (isset($_GET['tri']))
+    $tri = tri($_GET['tri']);
+else
+    $tri='name';
+connect($USER_SQL,$PASSWORD_SQL,$DATABASE);
+if(is_serie($SERIES_DIR)) 
+    $db = 'series';
+else 
+    $db = 'movies';
+
 $folders = folders($dir,$HIDDEN_FILES);
 if (isset($_GET['recherche'])){
 	$string = explode(' ',$_GET['recherche']);
@@ -136,12 +144,12 @@ if(!empty($src)) $style='style="background-image:url('.$src.');" class="banner"'
 }
 ?>
 <div <?php echo $style;?>><?php 
-if(isset($_GET['recherche'])) echo '<a href="index.php"><img src="images/home.png" alt="home"></a> <a href="index.php">'.home.'</a> / '.research.' ['.$_GET['recherche'].']';
+if(isset($_GET['recherche'])) echo '<a href="index.php"><img src="images/home.png" alt="home"></a> <a href="index.php">'.home.'</a> '.research.' ['.$_GET['recherche'].']';
 elseif (isset($_GET['genre'])){
 $sql_search_genre = "SELECT name FROM genres WHERE id_genre=".$_GET['genre'];
 $req_search_genre = mysql_query($sql_search_genre) or die ('Erreur SQL :'.mysql_error());
 $name_genre = mysql_fetch_array($req_search_genre);
-echo '<a href="index.php"><img src="images/home.png" alt="home"></a> <a href="index.php">'.home.'</a> / Genre ['.$name_genre['name'].']';
+echo '<a href="index.php"><img src="images/home.png" alt="home"></a> <a href="index.php">'.home.'</a> Genre ['.$name_genre['name'].']';
 }
 else repertoire($dir);?></div>
 </nav>
@@ -221,7 +229,7 @@ while ($data = mysql_fetch_array($req)){
 <div class="license">
 <a rel="license" href="http://creativecommons.org/licenses/by-nc-nd/3.0/"><img alt="Licence Creative Commons" style="border-width:0" src="images/cc88x31.png" /></a><br /><span style="display:none;" class="licensetext">Cette application est mise à disposition selon les termes de la <a rel="license" href="http://creativecommons.org/licenses/by-nc-nd/3.0/">Licence CC BY-NC-ND 3.0</a>.</span></div>
 <div class="generation"><?php echo pagegeneration.' '.round((microtime(true)-$time_start),3);?> s.<br><br>Version : <?php echo $VERSION;?></div>
-<div class="hosted">Last version available on <br><a href="https://github.com/teebo/VideoStation" target="_blank"><img src="images/github.png" style="height:30px;"></a></div>
+<div class="hosted">Last version available on <br><a href="https://github.com/thunderace/videoStation" target="_blank"><img src="images/github.png" style="height:30px;"></a></div>
 <div style="clear:both;"></div>
 </footer>
 <!-- /FOOTER -->

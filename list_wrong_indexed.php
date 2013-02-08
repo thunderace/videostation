@@ -2,7 +2,7 @@
 require('lib/config.php');
 require('lib/API-allocine.php');
 require('lib/functions.php');
-connect($PASSWORD_SQL,$DATABASE);
+connect($USER_SQL,$PASSWORD_SQL,$DATABASE);
 echo '<div id="test"></div>';
 $sql = "SELECT * FROM movies WHERE id_movie=0";
 $req = mysql_query($sql) or die ('Erreur SQL '.mysql_error());
