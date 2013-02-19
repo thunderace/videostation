@@ -1,5 +1,6 @@
 <?php
 require_once("lib/API-allocine.php");
+require_once("lib/config.php");
 require_once('lib/API-TMDb.php');
 require_once('lib/functions.php');
 require_once('lib/lang.php');
@@ -59,7 +60,8 @@ echo '<div id="content">';
 else {
 echo '<nav><div>';
 echo '<h1>'.$infos['name'];
-if ($infos['name']!=$infos['original_name']) echo ' ('.$infos['original_name'].')';
+if ($infos['name']!=$infos['original_name']) 
+    echo ' ('.$infos['original_name'].')';
 echo '</h1></div></nav>';
 echo '<div id="content">';
 ?>
@@ -75,21 +77,26 @@ echo '<div id="content">';
 	<tr><td style="vertical-align:top;"><b><?php echo director;?>:</b></td><td><?php echo $infos['directors'];?></td></tr>
 	<tr><td style="vertical-align:top;"><b><?php echo actors;?>:</b></td><td><?php echo $infos['actors'];?></td></tr>
 	<tr><td style="vertical-align:top;"><b><?php echo synopsis;?>:</b></td><td><?php echo $infos['synopsis'];?></td></tr>
-	<tr><td style="vertical-align:top;"><b><?php echo trailer;?>:</b></td><td><?php
-	if($infos['api'] == 'Allocine' and !empty($infos['trailer'])){
-		echo '<div><object type="application/x-shockwave-flash" data="'.$infos['trailer'].'" width="420" height="357"><param name="allowFullScreen" value="true"></object></div>';
+
+    <?php
+    if ($TRAILER == TRUE) {
+        echo '<tr><td style="vertical-align:top;"><b><?php echo trailer;?>:</b></td><td>';
+
+    	if($infos['api'] == 'Allocine' and !empty($infos['trailer'])){
+    		echo '<div><object type="application/x-shockwave-flash" data="'.$infos['trailer'].'" width="420" height="357"><param name="allowFullScreen" value="true"></object></div>';
+    	}
+    	elseif(($infos['api'] == 'TMDb' or $infos['api'] == 'manual') and $TRAILER == TRUE and !empty($infos['trailer'])){
+            $codeyoutube = explode('v=',$infos['trailer']);
+    		$codeyoutube = $codeyoutube[1];
+    		if(strlen($codeyoutube) != 11) {
+    			$codeyoutube = explode('&',$codeyoutube);
+    			$codeyoutube = $codeyoutube[0];
+    		}
+		    echo '<iframe width="420" height="315" style="margin-left:auto;margin-right:auto;" src="http://www.youtube.com/embed/'.$codeyoutube.'" frameborder="0" allowfullscreen></iframe>';
+    	}
 	}
-	elseif(($infos['api'] == 'TMDb' or $infos['api'] == 'manual') and !empty($infos['trailer'])){
-			$codeyoutube = explode('v=',$infos['trailer']);
-			$codeyoutube = $codeyoutube[1];
-			if(strlen($codeyoutube) != 11) {
-			$codeyoutube = explode('&',$codeyoutube);
-			$codeyoutube = $codeyoutube[0];
-			}
-			echo '<iframe width="420" height="315" style="margin-left:auto;margin-right:auto;" src="http://www.youtube.com/embed/'.$codeyoutube.'" frameborder="0" allowfullscreen></iframe>';
-		
-	}
-	?></td></tr>
+	?>
+    </td></tr>
 </table>
 <?php
 }

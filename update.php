@@ -87,6 +87,8 @@ Rechercher un film: <input type="text" name="recherche" class="form">
 			</form>
 			<form method="POST" action="update.php?action=erase&oldcode=<?php echo $_GET['oldcode'];?>&link=<?php echo urlencode($_GET['link']);?>" class="nyroModal" enctype="multipart/form-data">
 			<input type="submit" value="supprimer">
+			<form method="POST" action="update.php?action=eraseandignore&oldcode=<?php echo $_GET['oldcode'];?>&link=<?php echo urlencode($_GET['link']);?>" class="nyroModal" enctype="multipart/form-data">
+			<input type="submit" value="supprimer et ne plus indexer"></input>
 			</form>
 			</p>
 			
@@ -247,7 +249,19 @@ switch($_GET['action']){
 	echo '<img src="images/check.png" alt="ok">'.$_GET['link'].' mis &agrave; jour!<br />Recharger la page pour prendre les modifications en compte.</div>';
 
 	break;
+	case 'eraseandignore':
+	if($_GET['oldcode'] != 0){ //erase imdbid
+	$sql = "DELETE FROM movie_genre WHERE fk_id_movie = '".$_GET['oldcode']."'";
+	mysql_query($sql) or die ('Erreur SQL '.mysql_error());
+	}
+	// erase id_movie where link = link
+	$sql = "UPDATE movies SET id_movie=-1, name=0, original_name=0, length=0, countries=0, directors=0, actors=0, synopsis=0,poster=0, trailer=0, note=0, votes=0, year=0 WHERE link = '".$_GET['link']."'";
+	mysql_query($sql) or die ('Erreur SQL '.mysql_error());
 	
+	echo '<div style="text-align:center;">';
+	echo '<img src="images/check.png" alt="ok">'.$_GET['link'].' mis &agrave; jour!<br />Recharger la page pour prendre les modifications en compte.</div>';
+
+	break;
 	case 'manual':
 
 	if($_GET['oldcode'] != 0){
@@ -313,6 +327,8 @@ switch($_GET['action']){
 	mysql_real_escape_string($_POST['original_name']),
 	mysql_real_escape_string($_POST['length']),
 	mysql_real_escape_string($_POST['countries']),
+	mysql_real_escape_string($_POST['genres']),
+	
 	mysql_real_escape_string($_POST['directors']),
 	mysql_real_escape_string($_POST['actors']),
 	mysql_real_escape_string($_POST['synopsis']),
@@ -324,7 +340,10 @@ switch($_GET['action']){
 	'manual',
 	mysql_real_escape_string($_GET['link']));
 	mysql_query($sql) or die ('Erreur SQL : '.mysql_error());
-	$genre = explode(',',$infos['genres']);
+	
+	//$genre = explode(',',$infos['genres']);
+	$genre = explode(',',$_POST['genres']);
+	
 	$sql = "SELECT name FROM genres";
 	$req = mysql_query($sql);
 	$exist_genres = array();

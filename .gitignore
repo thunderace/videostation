@@ -1,4 +1,3 @@
-
 #################
 ## Eclipse
 #################
@@ -168,3 +167,4 @@ pip-log.txt
 lib/config.php
 #local folder link
 video
+images/poster_small

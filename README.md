@@ -1,5 +1,7 @@
 #VideoStation For All
 
+* New function : add ignore.videostation in folders to be ignored by the indexer
+
 ##1. Informations générales
 
 * Son but est de gérer vos vidéos afin de les rendres accessibles via internet ainsi que de récupérer certaines informations provenant de la base de données [Allocine](http://www.allocine.fr) et/ou [TMDb](http://www.themoviedatabase.org).

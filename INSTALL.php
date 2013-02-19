@@ -136,7 +136,7 @@ CREATE TABLE IF NOT EXISTS `series` (
   `broadcast_date` date NOT NULL,
   `dir` varchar(255) NOT NULL,
   `api` varchar(255) NOT NULL,
-  PRIMARY KEY (`link`)
+  PRIMARY KEY (`link`, `id_serie`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 ";
 

@@ -38,6 +38,8 @@
 	$infos['bande-annonce']
 
 ******************************************************************************/
+require_once('/volume1/web/lib/PhpConsole/PhpConsole.php');
+PhpConsole::start(true, true, dirname(__FILE__));
 
 class AlloCine{
 
@@ -73,12 +75,20 @@ public function movieSearch($keywords) {
 			throw new Exception('Failed to open stream : '.$this->get_url($keywords));
 		}
 		$this->data = json_decode($this->content,true);
-		if (empty($this->data['feed']['movie']['0']['title'])) $title = $this->data['feed']['movie']['0']['originalTitle'];
-		else $title = $this->data['feed']['movie']['0']['title'];
+		if (empty($this->data['feed']['movie']['0']['originalTitle'])) 
+			$originalTitle = "";
+		else 
+			$originalTitle = $this->data['feed']['movie']['0']['originalTitle'];			
+
+		if (empty($this->data['feed']['movie']['0']['title'])) 
+			$title = $originalTitle;
+		else 
+			$title = $this->data['feed']['movie']['0']['title'];
+
 		$this->result = array(
 			'code'=>$this->data['feed']['movie']['0']['code'],
 			'titre'=>$title,
-			'titre-original'=>$this->data['feed']['movie']['0']['originalTitle'],
+			'titre-original'=>$originalTitle,
 			'annee'=>$this->data['feed']['movie']['0']['productionYear'],
 			'acteurs'=>$this->data['feed']['movie']['0']['castingShort']['actors'],
 			'realisateur'=>$this->data['feed']['movie']['0']['castingShort']['directors'],
@@ -218,16 +228,25 @@ public function movieInfos($id){
 	}
 	
 public function serieSearch($keywords){
-
 		$keywords = urlencode($keywords);
 		//echo $keywords;
-		$this->content = file_get_contents($this->get_url($keywords,true));
+        $url = $this->get_url($keywords,true);
+//        debug("serieSearch " . $url);
+		$this->content = file_get_contents($url);
 		/**if($this->content === false){
 			throw new Exception('Failed to open stream : '.$this->url);
 		}**/
 		$this->data = json_decode($this->content,true);
-		if (empty($this->data['feed']['tvseries']['0']['title'])) $title = $this->data['feed']['tvseries']['0']['originalTitle'];
-		else $title = $this->data['feed']['tvseries']['0']['title'];
+//        debug($this->content);
+
+        if (empty($this->data['feed']['tvseries'])) // not found
+            return "";
+
+		if (empty($this->data['feed']['tvseries']['0']['title'])) 
+            $title = $this->data['feed']['tvseries']['0']['originalTitle'];
+		else 
+            $title = $this->data['feed']['tvseries']['0']['title'];
+            
 		$this->result = array(
 			'code'=>$this->data['feed']['tvseries']['0']['code'],
 			'titre'=>$title,
@@ -243,6 +262,8 @@ public function serieSearch($keywords){
 
 public function seasonInfos($id){
 	$this->url = $this->url_site_lang.$this::UrlSeason.'code='.$id.'&partner='.$this->Options['partner'].'&format=json&profile=large';
+//    debug("seasonInfos " . $this->url);
+    
 	$this->content = file_get_contents($this->url);
 	$this->data = json_decode($this->content,true);
 	$tabEpisode = $this->data['season']['episode'];
@@ -260,32 +281,44 @@ public function seasonInfos($id){
 public function episodeInfos($id){
 	$this->url = $this->url_site_lang.$this::UrlEpisode.'code='.$id.'&partner='.$this->Options['partner'].'&format=json&profile=large';
 	$this->content = file_get_contents($this->url);
+//    debug("episodeInfos " . $this->url);
 	$this->data = json_decode($this->content, true);
-	$this->result = array(
-	'code'=>$this->data['episode']['code'],
-	'titre'=>$this->data['episode']['title'],
-	'titre-original'=>$this->data['episode']['originalTitle'],
-	'date'>$this->data['episode']['originalBroadcastDate'],
-	'resume'=>$this->data['episode']['synopsis'],
-	'note-public'=>$this->data['episode']['statistics']['userRating'],
-	'saison'=>$this->data['episode']['parentSeason']['name'],
-	'episode'=>$this->data['episode']['episodeNumberSeason']
-	);
+    if (empty($this->data['episode']['statistics']['userRating']))
+        $userRating = "0";
+    else
+        $userRating = $this->data['episode']['statistics']['userRating'];
+        
+	if (empty($this->data['episode'])) 
+        $this->result = array();
+    else
+    	$this->result = array(
+    	'code'=>$this->data['episode']['code'],
+    	'titre'=>$this->data['episode']['title'],
+    	'titre-original'=>$this->data['episode']['originalTitle'],
+    	'date'>$this->data['episode']['originalBroadcastDate'],
+    	'resume'=>$this->data['episode']['synopsis'],
+    	'note-public'=>$userRating,
+    	'saison'=>$this->data['episode']['parentSeason']['name'],
+    	'episode'=>$this->data['episode']['episodeNumberSeason']
+    	);
 	//$this->browseArray($this->data);
-	//echo $this->url;
 	return $this->result;
-
 }
 	
 public function serieInfos($id){
 	$this->url = $this->url_site_lang.$this::UrlSerie.'code='.$id.'&partner='.$this->Options['partner'].'&format=json&profile=large';
-		//echo $this->url;
+//    debug("serieInfos " . $this->url);
 		$this->content = file_get_contents($this->url);
 		$this->data = json_decode($this->content,true);
 		$tabseason = $this->data['tvseries']['season'];
 		for($i=0;$i<count($tabseason);$i++){
 			$seasoncode[$tabseason[$i]['seasonNumber']] = $tabseason[$i]['code'];
 		}
+		if (empty($this->data['tvseries']['topBanner']['href'])) 
+            $topBanner = "";
+        else
+            $topBanner = $this->data['tvseries']['topBanner']['href'];
+        
 		$this->result = array(
 			'code'=>$this->data['tvseries']['code'],
 			'titre-original'=>$this->data['tvseries']['originalTitle'],
@@ -297,7 +330,7 @@ public function serieInfos($id){
 			'nb-episodes'=>$this->data['tvseries']['episodeCount'],
 			'longueur'=>$this->data['tvseries']['formatTime'].'min',
 			'tabSaisons'=>$seasoncode,
-			'topBanner'=>$this->data['tvseries']['topBanner']['href']);
+			'topBanner'=>$topBanner);
 					
 		//$this->browseArray($this->result);
 	

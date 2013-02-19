@@ -2,10 +2,96 @@
 $time_start = microtime(true);
 session_start();
 require_once('lib/config.php');
+
+if((isset($_GET['action']) && $_GET['action'] == 'mod') && isset($_POST['pass'])){
+	/** if($_POST['oldvideobase'] != $_POST['videobase']){
+	$db = mysql_connect("localhost", $USER_SQL, $_POST['pass']);
+	if (!$db) {
+    	die('Connexion impossible : ' . mysql_error());
+	}
+	mysql_select_db($_POST['bdd'],$db);
+	$sql_movies = "TRUNCATE TABLE movies";
+	$sql_genres = "TRUNCATE TABLE genres";
+	$sql_movie_genre = "TRUNCATE TABLE movie_genre";
+	mysql_query($sql_movies) or die ('Erreur SQL '.mysql_error());
+	mysql_query($sql_genres) or die ('Erreur SQL '.mysql_error());
+	mysql_query($sql_movie_genre) or die ('Erreur SQL '.mysql_error());
+	mysql_close($db);
+	}**/
+	$file = fopen('lib/config.php','w');
+	ftruncate($file,0);
+
+	$ext = $_POST['ext'];
+	$ext = explode(',',$ext);
+	$ext_array = 'array(';
+	for($i=0;$i<count($ext);$i++){
+	$ext_array .= '"'.$ext[$i].'"';
+	if($i != (count($ext)-1)) $ext_array .= ',';
+	}
+	$ext_array .= ')';
+
+	$del = $_POST['deletedwords'];
+	$del = explode(',',$del);
+	$del_array = 'array(';
+	for($i=0;$i<count($del);$i++){
+	$del_array .= '"'.$del[$i].'"';
+	if($i != (count($del)-1)) $del_array .= ',';
+	}
+	$del_array .= ')';
+
+	$hid = $_POST['hiddenfiles'];
+	$hid = explode(',',$hid);
+	$hid_array = 'array(';
+	for($i=0;$i<count($hid);$i++){
+	$hid_array .= '"'.$hid[$i].'"';
+	if($i != (count($hid)-1)) $hid_array .= ',';
+	}
+	$hid_array .= ')';
+
+	if(empty($_POST['login'])) $login='FALSE';
+	else $login='TRUE';
+
+	if(empty($_POST['ftp'])) $ftp='FALSE';
+	else $ftp='TRUE';
+
+	if(empty($_POST['secure'])) $secure='FALSE';
+	else $secure='TRUE';
+
+	if(empty($_POST['inauto'])) $inauto='FALSE';
+	else $inauto='TRUE';
+
+	if(empty($_POST['modal'])) $modal='FALSE';
+	else $modal='TRUE';
+
+	$content_config = '<?php
+	$APP_NAME = "'.$_POST['title'].'";
+	$VERSION = "'.$VERSION.'";
+	$USER_SQL = "'.$_POST['user'].'";
+	$PASSWORD_SQL = "'.$_POST['pass'].'";
+	$DATABASE = "'.$_POST['bdd'].'";
+	$EXT = '.$ext_array.';
+	$HIDDEN_FILES = '.$hid_array.';
+	$DELETED_WORDS = '.$del_array.';
+	$VIDEO_DIR = "'.$_POST['videodir'].'";
+	$SERIES_DIR = "'.$_POST['seriesdir'].'";
+	$MOVIES_DATABASE = "'.$_POST['videobase'].'" ;
+	$SERIES_DATABASE = "'.$_POST['seriebase'].'" ;
+	$LANGUAGE = "'.$_POST['lang'].'";
+	$SECURE = '.$secure.';
+	$LOGIN = '.$login.';
+	$MODAL = '.$modal.';
+	$FTP = '.$ftp.';
+	$INDEXATION_AUTO = '.$inauto.';
+?>';
+
+	if(fputs($file, $content_config)) 
+		$message = 'Configuration modifi&eacute;e avec succ&egrave;s!';
+	else 
+		echo 'echec';
+}
 require_once('lib/API-allocine.php');
 require_once('lib/functions.php');
 connect($USER_SQL,$PASSWORD_SQL,$DATABASE);
-//login_check($LOGIN,$PORT_SYNO,$SECURE);
 $root = true ; //= admin($root);
 if(!$root) die (include('login.php'));
 ?>
@@ -117,13 +203,16 @@ if(!$root) die (include('login.php'));
 				</td>
 			</tr>
 			<tr>
+				<td><?php echo sqluser;?></td><td><input type="text" name="user" value=<?php echo "\"".$USER_SQL."\"";?>></td>
+			</tr>
+			<tr>
 				<td><?php echo sqlpass;?></td><td><input type="password" name="pass" value=<?php echo "\"".$PASSWORD_SQL."\"";?>></td>
 			</tr>
 			<tr>
 				<td><?php echo dbsql;?></td><td><input type="text" name="bdd" value=<?php echo "\"".$DATABASE."\"";?>></td>
 			</tr>
 			<tr>
-				<td><?php echo confport;?></td><td><input type="text" name="port" value=<?php echo "\"".$PORT_SYNO."\"";?>></td>
+				<td><?php echo videodir;?></td><td><input type="text" name="videodir" value=<?php echo "\"".$VIDEO_DIR."\"";?>></td>
 			</tr>
 			<tr>
 				<td><?php echo seriesdir;?></td><td><input type="text" name="seriesdir" value=<?php echo "\"".$SERIES_DIR."\"";?>></td>

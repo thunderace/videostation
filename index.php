@@ -1,20 +1,18 @@
 <?php
-$time_start = microtime(true);
-session_start();
+//session_start();
 require_once('lib/config.php');
 require_once('lib/API-allocine.php');
 require_once('lib/functions.php');
 require_once('lib/lang.php');
-if($INSTALL){
+
+if(isset($INSTALL) && $INSTALL == TRUE){
 	echo '<script>document.location.href="index.php"</script>';
 	die (include('INSTALL.php'));
 }
-if (isset($_GET['rep']))
-    $dir = rep(urldecode($_GET['rep']));
-else {
-    $dir = rep(urldecode($VIDEO_DIR));
-    $_GET['rep'] = $VIDEO_DIR;
-}
+if (!isset($_GET['rep']))
+    $_GET['rep'] = "";
+$dir = rep(urldecode($_GET['rep']));
+
 if (isset($_GET['tri']))
     $tri = tri($_GET['tri']);
 else
@@ -43,7 +41,6 @@ else $sql = "SELECT * FROM $db WHERE dir='".$dir."' ORDER BY ".$tri;
 $req = mysql_query($sql) or die ('Erreur SQL : '.mysql_error());
 $nb_entree_bdd = mysql_num_rows($req); 
 ?>
-<?php //echo round((microtime(true)-$time_start),3);?>
 <!DOCTYPE html>
 <html>
 <head>
@@ -75,11 +72,10 @@ $nb_entree_bdd = mysql_num_rows($req);
 	<div class="header_right demo" style="margin-right:8px;padding-top:1px;">
 	<a href="#param"><button id="parameters" value="Infos">Infos</button></a>
 	<div class="ui-widget-content" id="param" aria-label="Login options" style="float:right;">
-		<?php if(isset($_SESSION['user'])) echo '['.$_SESSION['user'].'] | <a href="index.php?action=logout">Logout</a>';
-		else echo '| <a href="login.php">Login</a>';
-		if ($root) echo ' | <a href="admin.php">Administration</a>';
-		echo ' |';
-		$stats = countVideos();?>
+		<?php 
+            if ($root) echo '<a href="admin.php">Administration</a>';
+		    $stats = countVideos();
+        ?>
 		<hr>
 		<table border="0">
 		<tr><td>Films :</td><td><?php echo $stats['movies'];?></td></tr>
@@ -138,20 +134,24 @@ $nb_entree_bdd = mysql_num_rows($req);
 <!-- NAVIGATION -->
 <nav class="margin">
 <?php
+$style = "";
 if(is_serie($SERIES_DIR)){
-$src = banner_serie();
-if(!empty($src)) $style='style="background-image:url('.$src.');" class="banner"';
+    $src = banner_serie();
+    if(!empty($src)) 
+        $style='style="background-image:url('.$src.');" class="banner"';
 }
 ?>
 <div <?php echo $style;?>><?php 
-if(isset($_GET['recherche'])) echo '<a href="index.php"><img src="images/home.png" alt="home"></a> <a href="index.php">'.home.'</a> '.research.' ['.$_GET['recherche'].']';
-elseif (isset($_GET['genre'])){
-$sql_search_genre = "SELECT name FROM genres WHERE id_genre=".$_GET['genre'];
-$req_search_genre = mysql_query($sql_search_genre) or die ('Erreur SQL :'.mysql_error());
-$name_genre = mysql_fetch_array($req_search_genre);
-echo '<a href="index.php"><img src="images/home.png" alt="home"></a> <a href="index.php">'.home.'</a> Genre ['.$name_genre['name'].']';
-}
-else repertoire($dir);?></div>
+if(isset($_GET['recherche'])) 
+    echo '<a href="index.php"><img src="images/home.png" alt="home"></a> <a href="index.php">'.home.'</a> '.research.' ['.$_GET['recherche'].']';
+else
+    if (isset($_GET['genre'])) {
+        $sql_search_genre = "SELECT name FROM genres WHERE id_genre=".$_GET['genre'];
+        $req_search_genre = mysql_query($sql_search_genre) or die ('Erreur SQL :'.mysql_error());
+        $name_genre = mysql_fetch_array($req_search_genre);
+        echo '<a href="index.php"><img src="images/home.png" alt="home"></a> <a href="index.php">'.home.'</a> Genre ['.$name_genre['name'].']';
+    } else 
+        repertoire($dir);?></div>
 </nav>
 <!-- /NAVIGATION -->
 
@@ -191,27 +191,43 @@ while ($data = mysql_fetch_array($req)){
 	//DIV TOOLTIP
 	echo '<div class="tooltip">
 	<table border="0"';
-	if(!$root) echo 'style="margin-left:20px;"';
+	if(!$root) 
+        echo 'style="margin-left:20px;"';
 	echo '><tr>';
-	if($data['id_movie'] != '0' and $data['id_movie'] != '0-0-0') echo '<td><a href="#null" rel="'.urlencode($data['link']).'" class="opener movielist"><img src="images/info.png" alt="Info"></a></td>';
+	if(isset($data['id_movie']) and $data['id_movie'] != '0' and $data['id_movie'] != '0-0-0') {
+        echo '<td><a href="#null" rel="'.urlencode($data['link']).'" class="opener movielist"><img src="images/info.png" alt="Info"></a></td>';
+        echo '<td><a href="#null" rel="'.urlencode($data['link']).'" class="opener movielist"><img src="images/Trash.png" alt="Delete"></a></td>';
+	}
 	echo '<td><a href="';
-	if($FTP) echo 'ftp://'.$_SERVER['SERVER_NAME'].'/'.$data['dir'].'/'.$data['link'];
-	else echo $data['dir'].'/'.$data['link'];
+	if($FTP) 
+        echo 'ftp://'.$_SERVER['SERVER_NAME'].'/'.$data['dir'].'/'.$data['link'];
+	else 
+        echo $data['dir'].'/'.$data['link'];
 	echo '" class="movielist" title="'.$data['link'].'"><img src="images/down.png"></a></td>';
-	if($root and !is_serie($SERIES_DIR)) echo '<td><a href="update.php?link='.urlencode($data['link']).'&oldcode='.$data['id_movie'].'" class="nyroModal"><img src="images/update.png"></a></td>';
+	if($root and !is_serie($SERIES_DIR)) 
+        echo '<td><a href="update.php?link='.urlencode($data['link']).'&oldcode='.$data['id_movie'].'" class="nyroModal"><img src="images/update.png"></a></td>';
 	echo '</tr>
 	<tr>';
-	if($data['id_movie'] != '0' and $data['id_movie'] != '0-0-0') echo '<td>'.infos.'</td>';
+	if(isset($data['id_movie']) and $data['id_movie'] != '0' and $data['id_movie'] != '0-0-0') {
+        echo '<td>'.infos.'</td>';
+        echo '<td>'.delinfos.'</td>';
+	}
 	echo '<td>'.link.'</td>';
-	if($root and !is_serie($SERIES_DIR)) echo '<td>'.update.'</td>';
+	if($root and !is_serie($SERIES_DIR)) 
+        echo '<td>'.update.'</td>';
 	echo '</tr>
 	</table>
 	</div>';
-	// /DIV TOOLTIP
 	echo '<div class="title"><h5><a href="';
-	if($FTP) echo 'ftp://'.$_SERVER['SERVER_NAME'].'/'.$data['dir'].'/'.$data['link'];
-	else echo $data['dir'].'/'.$data['link'];
-	echo '" class="movielist" title="'.$data['link'].'">'.length($data['name'],22).'</a></h5><p>'.$data['year'].'</p></div>';
+	if($FTP) 
+        echo 'ftp://'.$_SERVER['SERVER_NAME'].'/'.$data['dir'].'/'.$data['link'];
+	else 
+        echo $data['dir'].'/'.$data['link'];
+    if (empty($data['year']))
+	    echo '" class="movielist" title="'.$data['link'].'">'.length($data['name'],22).'</a></h5><p></p></div>';
+    else
+        echo '" class="movielist" title="'.$data['link'].'">'.length($data['name'],22).'</a></h5><p>'.$data['year'].'</p></div>';
+    
 	echo '<div class="stars">'.stars($data['note']).'</div>';
 	echo '</li>';
 	$i++;
@@ -228,7 +244,7 @@ while ($data = mysql_fetch_array($req)){
 <footer>
 <div class="license">
 <a rel="license" href="http://creativecommons.org/licenses/by-nc-nd/3.0/"><img alt="Licence Creative Commons" style="border-width:0" src="images/cc88x31.png" /></a><br /><span style="display:none;" class="licensetext">Cette application est mise à disposition selon les termes de la <a rel="license" href="http://creativecommons.org/licenses/by-nc-nd/3.0/">Licence CC BY-NC-ND 3.0</a>.</span></div>
-<div class="generation"><?php echo pagegeneration.' '.round((microtime(true)-$time_start),3);?> s.<br><br>Version : <?php echo $VERSION;?></div>
+<br>Version : <?php echo $VERSION;?></div>
 <div class="hosted">Last version available on <br><a href="https://github.com/thunderace/videoStation" target="_blank"><img src="images/github.png" style="height:30px;"></a></div>
 <div style="clear:both;"></div>
 </footer>
