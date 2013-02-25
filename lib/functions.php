@@ -1,26 +1,71 @@
 <?php
 require_once('config.php');
+require_once('system_config.php');
 require_once('lang.php');
-/**********************************************************************************************************
 
-								========FONCTIONS========
+require_once('/volume1/web/lib/PhpConsole/PhpConsole.php');
+PhpConsole::start(true, true, dirname(__FILE__));
 
-
- 
-**********************************************************************************************************/
 $root = true;
+$logFile = NULL;
 
-function connect($user, $pass, $basename){
-    $db = mysql_connect('localhost',$user,$pass);
-    mysql_select_db($basename,$db);
+
+function joinPath($dir, $file){
+    return rtrim($dir, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . $file;
+}
+
+function al_is_serie($dir){
+    global $SERIES_DIR;
+    if(mb_ereg($SERIES_DIR, $dir)) 
+        return true;
+    else 
+        return false;
+}
+
+
+function openLogFile() {
+    global $logFile;
+    if ($logFile == NULL) {
+        // open
+        $dir = dirname(__FILE__);
+        $logFile = fopen(dirname($dir)."/videostation.log", "a");
+    }
+    return $logFile;
+}
+
+function logError($msg){
+    fwrite(openLogFile(), "ERR : " . $msg . "\n");
+}
+
+function logInfo($msg){
+    fwrite(openLogFile(), "INFO : " . $msg . "\n");
+}
+
+function logWarn($msg){
+    fwrite(openLogFile(), "WARNING : " . $msg . "\n");
+}
+
+
+function connect($host, $user, $pass, $basename){
+    $db = mysql_connect($host,$user,$pass);
+    if (!$db) {
+        logError('Connexion impossible : ' . mysql_error());
+        return false;
+    }
+    $db_selected = mysql_select_db($basename,$db);
+    if (!$db_selected) {
+      logError('Impossible de sélectionner la base de données : ' . mysql_error());
+      return false;
+    }
+    return true;
 }
 
 function repertoire($dir){
     global $VIDEO_DIR;
-    $edir = str_replace($VIDEO_DIR,home,$dir);
+    $edir = str_replace($VIDEO_DIR,'',$dir);
     $edir = explode('/',$edir);
     $redir = "";
-    echo '<img src="images/home.png" alt="home"> ';
+    echo '<a href="?rep='.urlencode($VIDEO_DIR).'"><img src="images/home.png" alt="home"></a>' ;
     for ($i=0;$i<=(count($edir)-1);$i++) {
 	    if (empty($redir)) 
             $slash='';
@@ -28,7 +73,10 @@ function repertoire($dir){
             $slash='/';
 	    $redir = $redir.$slash.$edir[$i];
 	    $redir = str_replace(home,$VIDEO_DIR,$redir);
-	    echo '<a href="?rep='.urlencode($redir).'">'.$edir[$i].'</a> / ';
+        if ($i == 0)
+	        echo '<a style="font-weight:bold;margin-left:10px;" href="?rep='.urlencode(joinPath($VIDEO_DIR,$redir)).'">'.$edir[$i].'</a>';
+        else
+            echo '<a style="font-weight:bold;" href="?rep='.urlencode(joinPath($VIDEO_DIR,$redir)).'">/'.$edir[$i].'</a>';
 	}
 }
 
@@ -37,18 +85,23 @@ function length($string,$maxlenght){
 		$string = explode(" ",$string);
 		$str = "";
 		for($i=0;$i<count($string);$i++){
-			if(strlen($str)<$maxlenght) $str .= $string[$i].' ';
-			else break;
+			if(strlen($str)<$maxlenght) 
+                $str .= $string[$i].' ';
+			else 
+                break;
 		}
-	if ($i == count($string)) return $str;
-	else return $str.'...';
+	    if ($i == count($string)) 
+            return $str;
+	    else 
+            return $str.'...';
 	}
-	else return $string;
+	else 
+        return $string;
 }
 
 function checklogin($cookie){
 	if(!empty($cookie)){
-	$_SESSION['user'] = $cookie;
+	    $_SESSION['user'] = $cookie;
 	}
 }
 
@@ -102,45 +155,79 @@ function resize($urlimg){
 
 
 function cleanFilename($dir, $link) {
-    global $DELETED_WORDS, $SAFE_MODE;
+    
+    // remove links : find . -maxdepth 1 -lname '*' -exec rm {} \;
+    global $DELETED_WORDS, $SAFE_MODE, $DRY_RUN;
+    // generate uniqueid
+    $uuid = uniqid ("", true);
+    
     $path_parts = pathinfo($dir . '/' . $link);
     $newlink = keywordsAdapt($path_parts['filename'], $DELETED_WORDS);
-    if ($newlink != $path_parts['filename']) {
-        // rename file
+    if ($newlink != $path_parts['filename']) { // name change
         if ($SAFE_MODE == TRUE) {
             // do not really rename the file but move it to a special hidden folder (folder videostation.safe with an ignore.videostation in it) and create a link to this file 
-            //debug("mkdir " . $dir.'/videostation.safe');
-            //debug("touch " . $dir.'/videostation.safe/ignore.videostation');
-            //debug("mv ". $dir .'/'.$link .' to ' . $dir.'/videostation.safe/'.$link);
-            //debug ("symlink " . $dir.'/videostation.safe/'.$link." to " . $dir .'/'.$newlink.'.'.$path_parts['extension'] );
             @mkdir($dir.'/videostation.safe');
             @touch($dir.'/videostation.safe/ignore.videostation');
-            rename($dir .'/'.$link, $dir.'/videostation.safe/'.$link);
-            symlink ( $dir.'/videostation.safe/'.$link , $dir .'/'.$newlink.'.'.$path_parts['extension'] );
+            
+            // before operate, verify that there will be no errors : move ok, link ok
+            if (file_exists($dir.'/videostation.safe/'.$link) || file_exists($dir .'/'.$newlink.'.'.$path_parts['extension'])) {
+                // error : log error and return
+                logError($dir.'/videostation.safe/'.$link . " or " . $dir .'/'.$newlink.'.'.$path_parts['extension'] . "exists!");
+                return $link;
+            }
+            if (file_exists($dir.'/'.$path_parts['filename'].'.jpg') && (file_exists($dir.'/videostation.safe/'.$path_parts['filename'].'.jpg'  ) || file_exists($dir.'/'.$newlink.'.jpg'))) {
+                // error : log error and return
+                logError($dir.'/'.$path_parts['filename'].'.jpg' . ' or ' . $dir.'/videostation.safe/'.$path_parts['filename'].'.jpg' . ' or ' . $dir.'/'.$newlink.'.jpg' . "exists!");
+                return $link;
+            }
+            // ACTION
+            if ($DRY_RUN == FALSE) {
+                rename($dir .'/'.$link, $dir.'/videostation.safe/'.$link); // = move
+                symlink ( $dir.'/videostation.safe/'.$link , $dir .'/'.$newlink.'.'.$path_parts['extension'] );
+            }
+            // do the same with the jpeg file
+            if ($DRY_RUN == FALSE && file_exists($dir.'/'.$path_parts['filename'].'.jpg')) {
+                rename($dir.'/'.$path_parts['filename'].'.jpg', $dir.'/videostation.safe/'.$path_parts['filename'].'.jpg');
+                symlink($dir.'/videostation.safe/'.$path_parts['filename'].'.jpg' , $dir.'/'.$newlink.'.jpg' );
+            }
         } else {
-            //debug("rename " . $dir .'/'.$link . ' to ' . $dir.'/'.$newlink.'.'.$path_parts['extension']);
-            rename($dir . '/' . $link, $dir . '/' . $newlink . '.' .$path_parts['extension']);
+            // rename
+            if (file_exists($dir . '/' . $newlink . '.' .$path_parts['extension'])) {
+                // error : log error and return
+                return $link;
+            } 
+            if (file_exists($dir.'/'.$path_parts['filename'].'.jpg') && file_exists($dir.'/'.$newlink.'.jpg')) {
+                // error : log error and return
+                return $link;
+            }
+            
+            if ($DRY_RUN == FALSE) {
+                rename($dir . '/' . $link, $dir . '/' . $newlink . '.' .$path_parts['extension']);
+            }
+            // do the same with the jpeg file
+            if (file_exists($dir.'/'.$path_parts['filename'].'.jpg')) {            
+                if ($DRY_RUN == FALSE) {
+                    rename($dir.'/'.$path_parts['filename'].'.jpg', $dir.'/'.$newlink.'.jpg');
+                }
+            }
         }
-        if (false) {
-            // TODO : Be gentle to rename all existing files with the same $path_parts['filename']
+
+
+        if (false) { // TODO Be gentle to rename all existing files with the same $path_parts['filename']
+            
             $all = glob($dir . '/' . $path_parts['filename'] . '.*');
             foreach ($all as $samefilename) {
                 echo "$samefilename size " . filesize($samefilename) . "\n";
                 // with a full path here : split
                 // if not the original file : rename and link if in safe mod
             }
-        } else {
-            if (file_exists($dir.'/'.$path_parts['filename'].'.jpg')) {
-                if ($SAFE_MODE == TRUE) {
-                    rename($dir.'/'.$path_parts['filename'].'.jpg', $dir.'/videostation.safe/'.$path_parts['filename'].'.jpg');
-                    symlink($dir.'/videostation.safe/'.$path_parts['filename'].'.jpg' , $dir.'/'.$newlink.'.jpg' );
-                } else {
-                    rename($dir.'/'.$path_parts['filename'].'.jpg', $dir.'/'.$newlink.'.jpg');
-                }
-            }
         }
     }
-    return $newlink . '.' . $path_parts['extension'];
+    if ($DRY_RUN == FALSE) {
+        return $newlink . '.' . $path_parts['extension'];
+    } else {
+        return $link;
+    }
 }
 
 
@@ -170,6 +257,7 @@ function keywordsAdapt($entry,$DELETED_WORDS,$index='0'){
 
 
 function ignore_dir($dir) {
+//    logError('ignore_dir test : '.$dir);
     if (is_dir($dir) == FALSE) {
         return false;
     }
@@ -179,6 +267,7 @@ function ignore_dir($dir) {
         return true;
     return false;
 }
+
 
 function is_serie($SERIES_DIR){
     if(mb_ereg($SERIES_DIR,urldecode($_GET['rep']))) 
@@ -275,15 +364,15 @@ function admin($root){
 
 function rep($rep){
     global $VIDEO_DIR;
-    
-	if (empty($rep)) 
+	if (empty($rep)) {
         $dir=$VIDEO_DIR;
-	else
+	} else {
         if ($rep == '.' or $rep == './') 
             $dir = $VIDEO_DIR;
 	    else 
             $dir = addslashes($rep);
-	return $dir;
+	}
+    return $dir;
 }
 
 function tri($sort){
@@ -317,11 +406,103 @@ function php2js ($var) {
     return FALSE;
 }
 
+
+function scanFileNameRecursivly($path, &$dirArray, &$fileArray, $base_movies)
+{
+    global $EXT, $HIDDEN_FILES;
+	$lists = @scandir($path);
+	if(!empty($lists)) {
+		foreach($lists as $f) {
+            $dir = joinPath($path,$f);
+//            logInfo("scanFileNameRecursivly : file : " . $dir);
+			if(is_dir($dir)) {
+                if(!in_array($f, $HIDDEN_FILES)) {
+                    if (ignore_dir($dir) == false) {
+                        $dirArray[]  = $dir; 
+				        scanFileNameRecursivly($dir, $dirArray, $fileArray, $base_movies); 
+			        } 
+                }
+			} else {
+    			$extension = strtolower(pathinfo($f, PATHINFO_EXTENSION));
+				if (in_array($extension, $EXT)) {
+    				if(!in_array($dir,$base_movies)){
+					    $fileArray[] = $dir;
+    				}
+				}
+			}
+		}
+	}
+}
+
+function index_all() {
+    global $HIDDEN_FILES,$ext,$SERIES_DIR, $EXT, $VIDEO_DIR;
+    $dirArray = array();
+    $fileArray = array();
+    $dirArray[] = $VIDEO_DIR;
+    debug("index_all");
+    $sql = "SELECT link,dir FROM series WHERE 1 UNION SELECT link,dir FROM errors WHERE 1 UNION SELECT link,dir FROM movies WHERE 1" ;
+    $req = mysql_query($sql) or die ('Erreur SQL : '.mysql_error());
+    $base_movies = array();
+	while($data = mysql_fetch_array($req)){
+		$base_movies[] = joinPath(stripslashes($data['dir']), stripslashes($data['link']));
+	}
+
+    scanFileNameRecursivly($VIDEO_DIR, $dirArray, $fileArray, $base_movies );
+/*
+foreach($dirArray as $dir) {
+        logInfo("index_all - Scanning " .  $dir . " dir");
+//        index_auto($dir, $HIDDEN_FILES, $EXT, $SERIES_DIR);
+    }  
+*/    
+    logInfo("index_all - File count : " .  count($fileArray));
+    $tot = count($fileArray);
+	echo '<script>';
+	//echo '$("#empty").html("<div id=\"progressbar\" style=\"width:200px;\"></div>");';
+	echo "\n";
+	echo 'var tabnonindexed = '.php2js($fileArray).';';
+	echo "\n";
+	echo 'if(tabnonindexed.length > 0){
+			$("#indexing").html("<br>'.indexing.'<br><br><div id=\"progressbar\" style=\"width:200px;\"></div><span id=\"nbindex\"></span><div id=\"error\"></div>").show();
+			//$("#empty").html("<div id=\"progressbar\" style=\"width:200px;\"></div>);
+			'; 
+	echo "\n";
+	echo 'var i = 1;';
+	echo "\n";
+	echo '$.each(tabnonindexed, function(index, value){
+			$.ajax({
+  				type: "GET",
+  				url: "lib/index_movie.php",
+   				data: "link="+value,
+   				error:function(msg){
+     				alert( "Error ! : " + msg );
+   				},
+   				success:function(data){
+					$( "#progressbar" ).progressbar({
+						value: (((i)/'.$tot.')*100)
+					});
+					$(\'#nbindex\').html(Math.round((((i)/'.$tot.')*100))+\'%\');
+					//document.write(data);
+					if(data != \'\'){
+                        console.log(data);
+						$(\'#error\').html(data);
+					}
+					if(i == '.$tot.'){
+						location.replace("index.php");
+					}
+				i++;	
+				}
+				
+		});
+			
+	}); }';
+	echo '</script>';
+}
+
 function index_auto($dir,$HIDDEN_FILES,$ext,$SERIES_DIR){
 	if(is_serie($SERIES_DIR)) 
-        $sql = "SELECT link FROM series WHERE dir='".$dir."' UNION SELECT link FROM errors WHERE dir='".$dir."' AND type='serie'";
+        $sql = "SELECT link FROM series WHERE dir='".mysql_real_escape_string(rtrim($dir, DIRECTORY_SEPARATOR))."' UNION SELECT link FROM errors WHERE dir='".mysql_real_escape_string(rtrim($dir, DIRECTORY_SEPARATOR))."' AND type='serie'";
 	else 
-        $sql = "SELECT link FROM movies WHERE dir='".$dir."' UNION SELECT link FROM errors WHERE dir='".$dir."' AND type='movie'";
+        $sql = "SELECT link FROM movies WHERE dir='".mysql_real_escape_string(rtrim($dir, DIRECTORY_SEPARATOR))."' UNION SELECT link FROM errors WHERE dir='".mysql_real_escape_string(rtrim($dir, DIRECTORY_SEPARATOR))."' AND type='movie'";
 	$req = mysql_query($sql) or die ('Erreur SQL : '.mysql_error());
 	$base_movies = array();
 	$nonindexed = array();
@@ -401,29 +582,31 @@ function index_auto($dir,$HIDDEN_FILES,$ext,$SERIES_DIR){
 			if ($i == ($nb_entree_bdd-count($files))) break; //si on a atteint le nombre de fichier modifier on sort de la boucle
 		}	
 	}
-
 }
 
 function folders($dir,$HIDDEN_FILES){
 	$folders = array();
 	if ($handle = opendir($dir)) {
 		while (false !== ($file = readdir($handle))) {
-			if (!in_array($file, $HIDDEN_FILES)) {
-				$extension = strtolower(pathinfo($file, PATHINFO_EXTENSION));
-				if(empty($extension) && ignore_dir($dir . '/' . $file) == false){
+			if (!in_array($file, $HIDDEN_FILES) && is_dir($dir.'/'.$file)) {
+				if(ignore_dir(joinPath($dir,$file)) == false){
 					$folders[] = $file;
+				} else {
+                    logInfo(joinPath($dir,$file) . " skipped for ignore rule!");
 				}
-			}	
+			}
     	}
-    closedir($handle);
+        closedir($handle);
+	} else {
+        logError('Erreur ouverture repertoire '.$dir);
+        echo 'Erreur ouverture repertoire '.$dir;
 	}
-	else echo 'Erreur ouverture repertoire '.$dir;
     natcasesort($folders);
     return $folders;
 }
 
 function check_files_folders($dir,$tri,$DELETED_WORDS,$ext,$HIDDEN_FILES,$SERIES_DIR){
-	$sql = "SELECT * FROM movies WHERE dir='".$dir."' ORDER BY ".$tri;
+	$sql = "SELECT * FROM movies WHERE dir='".mysql_real_escape_string(rtrim($dir, DIRECTORY_SEPARATOR))."' ORDER BY ".$tri;
 	$req = mysql_query($sql) or die ('Erreur SQL : '.mysql_error());
 	$nb_entree_bdd = mysql_num_rows($req); 
 	$stocked_links = array();
@@ -438,7 +621,7 @@ function check_files_folders($dir,$tri,$DELETED_WORDS,$ext,$HIDDEN_FILES,$SERIES
 				$extension = strtolower(pathinfo($file, PATHINFO_EXTENSION));
 				if (in_array($extension, $ext)){
 					if(!in_array($file,$stocked_links)){
-						$taille = round(fsize($dir.'/'.$file)/1048576);
+						$taille = round(fsize(joinPath($dir,$file))/1048576);
 						index($file, $taille, $DELETED_WORDS,$SERIES_DIR);
 					}
 					$files[] = $file;//contient la liste des films
@@ -450,7 +633,8 @@ function check_files_folders($dir,$tri,$DELETED_WORDS,$ext,$HIDDEN_FILES,$SERIES
     	}
     closedir($handle);
 	}
-	else echo "Echec ouverture repertoire ".$dir;
+	else 
+        echo "Echec ouverture repertoire ".$dir;
 	natcasesort($files); //trier les fichiers par ordre alphabetique
 	$req = mysql_query($sql) or die ('Erreur SQL : '.mysql_error());
 	$nb_entree_bdd = mysql_num_rows($req); 
@@ -482,7 +666,7 @@ function listage($path,$HIDDEN_FILES,$ext)
         while (($element_dossier = readdir($dir)) !== FALSE)
         {
                 //Si l'élément est lui-même un dossier (en excluant les dossiers parent et actuel), on appelle la fonction de listage en modifiant la racine du dossier à ouvrir
-                if (!in_array($element_dossier,$HIDDEN_FILES) && is_dir($path.'/'.$element_dossier))
+                if (!in_array($element_dossier,$HIDDEN_FILES) && is_dir(joinPath($path,$element_dossier)))
                 {
                         //On fusionne ici le tableau grâce à la fonction array_merge. Au final, tous les résultats de nos appels récursifs à la fonction listage fusionneront dans le même tableau
                         $tableau_elements = array_merge($tableau_elements, listage($path.'/'.$element_dossier,$HIDDEN_FILES,$ext));
@@ -491,7 +675,7 @@ function listage($path,$HIDDEN_FILES,$ext)
                 {
                 $extension = strtolower(pathinfo($element_dossier, PATHINFO_EXTENSION));
                         //Sinon, l'élément est un fichier : on l'enregistre dans le tableau
-                  if(in_array($extension,$ext)) $tableau_elements[] = $path.'/'.$element_dossier;
+                  if(in_array($extension,$ext)) $tableau_elements[] = joinPath($path,$element_dossier);
                 }
         }
         //On ferme le dossier

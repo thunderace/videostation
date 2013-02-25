@@ -1,8 +1,9 @@
 <?php 
-require('lib/config.php');
-require('lib/API-allocine.php');
-require('lib/functions.php');
-connect($USER_SQL,$PASSWORD_SQL,$DATABASE);
+require_once('lib/config.php');
+require_once('lib/system_config.php');
+require_once('lib/API-allocine.php');
+require_once('lib/functions.php');
+connect($HOST_SQL, $USER_SQL,$PASSWORD_SQL,$DATABASE);
 $listmovies = listage('./video',$HIDDEN_FILES,$EXT);
 $moviesinbase = moviesinbase();
 foreach ($moviesinbase as $movie){

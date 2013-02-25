@@ -2,13 +2,13 @@
 
 require_once("lib/movies_series.php");
 require_once("lib/config.php");
+require_once('lib/system_config.php');
 
 
-$dirPath = "/volume1/video/Divx/Alphabetique/A";  // for test
-//$dirPath = $VIDEO_DIR;
+//$dirPath = "/volume1/video/Divx/Alphabetique/A";  // for test
+$dirPath = $VIDEO_DIR;
 
 $filenames = scanFileNameRecursivly($dirPath);
-connect($USER_SQL,$PASSWORD_SQL,$DATABASE);
 
 foreach($filenames as $file) {
     echo "Scanning " . basename($file) . " from directory " . dirname($file) . "\n";
@@ -35,15 +35,5 @@ function scanFileNameRecursivly($path = '', &$name = array())
 	}
 	
 	return $name;
-}
-
-
-
-function go($dir, $link)
-{
-    if (al_is_serie($dir))
-        series($dir, $link);
-    else
-        movies($dir, $link);
 }
 ?>

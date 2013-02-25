@@ -103,7 +103,7 @@ nav {
 	border-top-left-radius: 1em;
 	border-top-right-radius: 1em;
 	box-shadow:2px 6px 7px rgba(0, 0, 0, 0.3);
-	text-align: center;
+	text-align: left;
 }
 	nav.margin { margin-top:50px;}
 	nav div{
@@ -216,6 +216,9 @@ nav {
 			border-radius: 0.4em;
 			box-shadow: 2px 2px 12px #000;
 			margin-top:2px;
+            width: 154px;
+            height: 236px;
+
 		}
 		#content ul.movielist li img.gallerie_onMouse{
 			box-shadow: 20px 20px 60px #000;	
@@ -340,12 +343,13 @@ footer {
 
 .tooltip {
 	display:none;
-	background:url(images/tooltip/white_arrow.png);
-	opacity: 1;
+/*	background:url(images/tooltip/white_arrow.png); */
+    background: #D8D8D8;
+	opacity: 0.7;
 	height:70px;
 	padding:40px 30px 10px 30px;
-	width:150px;
-	font-size:11px;
+	width:190px;
+	font-size:10px;
 	color:#4183c4;
 }
 	div.tooltip table{

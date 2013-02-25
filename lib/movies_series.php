@@ -1,18 +1,13 @@
 <?php
 
 require_once('config.php');
+require_once('system_config.php');
 require_once('API-allocine.php');
 require_once('API-TMDb.php');
 require_once('functions.php');
+require_once('/volume1/web/lib/PhpConsole/PhpConsole.php');
+PhpConsole::start(true, true, dirname(__FILE__));
 
-
-function al_is_serie($dir){
-    global $SERIES_DIR;
-    if(mb_ereg($SERIES_DIR,$dir)) 
-        return true;
-    else 
-        return false;
-}
 
 
 function index($dir, $link) {
@@ -26,21 +21,21 @@ function index($dir, $link) {
 
 
 function movies($dir, $link) {
-    global $MOVIES_DATABASE, $LANGUAGE, $DELETED_WORDS, $ALWAYS_UPDATE, $USER_SQL,$PASSWORD_SQL,$DATABASE, $CLEAN_AND_RENAME_MOVIES;
+    global $MOVIES_DATABASE, $LANGUAGE, $DELETED_WORDS, $ALWAYS_UPDATE, $USER_SQL,$PASSWORD_SQL,$DATABASE, $CLEAN_AND_RENAME_MOVIES, $HOST_SQL;
     //$$AL$$
-    if ($CLEAN_AND_RENAME_MOVIES)
+    if ($CLEAN_AND_RENAME_MOVIES) {
         $link = cleanFilename($dir, $link);
+    }
     
-	connect($USER_SQL,$PASSWORD_SQL,$DATABASE);
+	connect($HOST_SQL, $USER_SQL,$PASSWORD_SQL,$DATABASE);
 
-//	$sql = mysql_query("SELECT link FROM movies WHERE link='".mysql_real_escape_string($link)."'");
-    $sql = mysql_query("SELECT link FROM movies WHERE link='".mysql_real_escape_string($link)."' AND dir='" . $dir . "'");
+    $sql = mysql_query("SELECT link FROM movies WHERE link='".mysql_real_escape_string($link)."' AND dir='" . mysql_real_escape_string(rtrim($dir, DIRECTORY_SEPARATOR)) . "'");
     $data=mysql_fetch_array($sql);
 	if(!empty($data['link'])) {
 		if ($ALWAYS_UPDATE == TRUE)
-			$sql = mysql_query("DELETE FROM movies WHERE link='".mysql_real_escape_string($link)."'");
+			$sql = mysql_query("DELETE FROM movies WHERE link='".mysql_real_escape_string($link)."' AND dir='" . mysql_real_escape_string(rtrim($dir, DIRECTORY_SEPARATOR)) . "'");
 		else {
-			echo $dir.DIRECTORY_SEPARATOR.$link . " Already indexed";
+			echo joinPath($dir,$link) . " Already indexed";
 			return;
 		}
 	}
@@ -74,7 +69,7 @@ function movies($dir, $link) {
     		'0',
     		'0',
         	'0',
-    		\"".addslashes($dir)."\",
+    		\"".mysql_real_escape_string(rtrim($dir, DIRECTORY_SEPARATOR))."\",
     		\"".$MOVIES_DATABASE."\")";
     		mysql_query ($sql) or die('5.Erreur SQL !'.$sql.'<br>'.mysql_error());
     	}
@@ -118,7 +113,7 @@ function movies($dir, $link) {
     		$infos['nb-note-public'],
     		mysql_real_escape_string($recherche['annee']),
     		$size,
-    		mysql_real_escape_string($dir),
+    		mysql_real_escape_string(rtrim($dir, DIRECTORY_SEPARATOR)),
     		mysql_real_escape_string($MOVIES_DATABASE));
     		
     		if(!mysql_query($sql)){
@@ -159,9 +154,9 @@ function movies($dir, $link) {
 
 
 function series($dir, $link) {
-    global $SERIES_DATABASE, $LANGUAGE, $DELETED_WORDS, $USER_SQL,$PASSWORD_SQL,$DATABASE;
+    global $SERIES_DATABASE, $LANGUAGE, $DELETED_WORDS, $USER_SQL,$PASSWORD_SQL,$DATABASE, $HOST_SQL;
 	
-	connect($USER_SQL,$PASSWORD_SQL,$DATABASE);
+	connect($HOST_SQL, $USER_SQL,$PASSWORD_SQL,$DATABASE);
 
 	$sql = mysql_query("SELECT link FROM series WHERE link='".mysql_real_escape_string($link)."' AND dir='" . mysql_real_escape_string($dir) . "'");
 	$data=mysql_fetch_array($sql);
@@ -170,17 +165,18 @@ function series($dir, $link) {
 			$sql = mysql_query("DELETE FROM series WHERE link='".mysql_real_escape_string($link)."' AND dir='" . mysql_real_escape_string($dir) . "'");
 		else {
 			echo $dir.DIRECTORY_SEPARATOR.$link . " Already indexed";
+            logInfo($dir.DIRECTORY_SEPARATOR.$link . " Already indexed");
 			return;
 		}
 	}
 	
     switch($SERIES_DATABASE){
         case 'Allocine':
-    	$series = new Allocine($LANGUAGE);
-    	break;
+    	    $series = new Allocine($LANGUAGE);
+    	    break;
     	case 'TheTvDb':
-    	$series = new TheTvDb();
-    	break;
+    	    $series = new TheTvDb();
+    	    break;
     }
 	$infos = explode('/',$dir);
 	$infos = array_reverse($infos);
@@ -273,6 +269,7 @@ function series($dir, $link) {
     			'".$SERIES_DATABASE."'
     			)";
     			mysql_query ($sql) or die('3.Erreur SQL !'.$sql.'<br>'.mysql_error());
+                logError("Serie filename format error");
                 die("Serie filename format error");
                 }
                 
@@ -285,8 +282,9 @@ function series($dir, $link) {
 			$code_episode = $season['tabEpisode'][$nbEpisode];
 			$id.='-'.$code_episode;
 			$episode = $series->episodeInfos($code_episode);//infos episode
-			if (empty($episode['code'])){
-				echo 'Erreur';
+			if (empty($episode['code'])) {
+				echo 'Error : no code for episode';
+                logError('Error : no code for episode');
 			}
 			if (strlen($nbSeason) == 1) $nbSeason = '0'.$nbSeason;
 			if (strlen($nbEpisode) == 1) $nbEpisode = '0'.$nbEpisode;

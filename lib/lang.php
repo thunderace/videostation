@@ -1,5 +1,5 @@
 <?php
-require('config.php');
+require_once('config.php');
 switch($LANGUAGE){
 case 'fr':
 define('sortby','Trier par…');
@@ -17,6 +17,7 @@ define('pagegeneration','Page g&eacute;n&eacute;r&eacute;e en');
 define('loading','Chargement');
 define('details','Fiche détaillée');
 define('update','Modifier');
+define('save','Enregistrer');
 define('link', 'Lien');
 define('infos', 'Infos');
 define('delinfos', 'Supprime infos');
@@ -47,6 +48,7 @@ define('autoindexing','Indexation automatique');
 define('dbmovies','Base de donn&eacute;es vid&eacute;os');
 define('dbseries','Base de donn&eacute;es s&eacute;ries');
 define('lang','Langue');
+define('sqlhost','Serveur MySQL');
 define('sqluser','Utilisateur MySQL');
 define('sqlpass','Mot de passe MySQL');
 define('dbsql','Base de donn&eacute;es MySQL');
@@ -79,6 +81,7 @@ define('pagegeneration','Page generation :');
 define('loading','Loading');
 define('details','Detailed sheet');
 define('update','Update');
+define('save','Save');
 define('link', 'Link');
 define('infos', 'Infos');
 define('delinfos', 'Delete infos');
@@ -109,6 +112,7 @@ define('autoindexing','Auto-indexing');
 define('dbmovies','Movies Database');
 define('dbseries','Series Database');
 define('lang','Language');
+define('sqlhost','MySQL server');
 define('sqluser','MySQL user');
 define('sqlpass','MySQL paswword');
 define('dbsql','MySQL database');

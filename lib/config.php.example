@@ -1,6 +1,5 @@
 <?php
-	$APP_NAME = "Video Station";
-	$VERSION = "1.0-020";
+    $HOST_SQL = "localhost";
 	$USER_SQL = "root";
 	$PASSWORD_SQL = "password";
 	$DATABASE = "video";
@@ -12,8 +11,6 @@
 	$MOVIES_DATABASE = "TMDb" ;
 	$SERIES_DATABASE = "Allocine" ;
 	$LANGUAGE = "fr";
-	$SECURE = FALSE;
-	$LOGIN = TRUE;
 	$MODAL = TRUE;
 	$FTP = FALSE;
 	$INDEXATION_AUTO = TRUE;
@@ -22,4 +19,5 @@
     $POSTER_WITH_VIDEO = TRUE;
     $CLEAN_AND_RENAME_MOVIES = TRUE;
     $SAFE_MODE=TRUE;
+    $DRY_RUN = TRUE;
 ?>

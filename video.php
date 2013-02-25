@@ -1,10 +1,11 @@
 <?php
 require_once("lib/API-allocine.php");
 require_once("lib/config.php");
+require_once('lib/system_config.php');
 require_once('lib/API-TMDb.php');
 require_once('lib/functions.php');
 require_once('lib/lang.php');
-connect($USER_SQL,$PASSWORD_SQL,$DATABASE);
+connect($HOST_SQL, $USER_SQL,$PASSWORD_SQL,$DATABASE);
 $link=addslashes(urldecode($_GET['link']));
 
 if (is_serie($SERIES_DIR)){

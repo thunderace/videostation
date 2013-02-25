@@ -1,8 +1,9 @@
 <?php 
-require('lib/config.php');
-require('lib/API-allocine.php');
-require('lib/functions.php');
-connect($USER_SQL,$PASSWORD_SQL,$DATABASE);
+require_once('lib/config.php');
+require_once('lib/system_config.php');
+require_once('lib/API-allocine.php');
+require_once('lib/functions.php');
+connect($HOST_SQL, $USER_SQL,$PASSWORD_SQL,$DATABASE);
 echo '<div id="test"></div>';
 $sql = "SELECT * FROM movies WHERE id_movie=0";
 $req = mysql_query($sql) or die ('Erreur SQL '.mysql_error());

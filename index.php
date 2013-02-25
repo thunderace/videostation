@@ -1,13 +1,14 @@
 <?php
 //session_start();
 require_once('lib/config.php');
+require_once('lib/system_config.php');
 require_once('lib/API-allocine.php');
 require_once('lib/functions.php');
 require_once('lib/lang.php');
 
 if(isset($INSTALL) && $INSTALL == TRUE){
 	echo '<script>document.location.href="index.php"</script>';
-	die (include('INSTALL.php'));
+	die (include('install.php'));
 }
 if (!isset($_GET['rep']))
     $_GET['rep'] = "";
@@ -17,7 +18,13 @@ if (isset($_GET['tri']))
     $tri = tri($_GET['tri']);
 else
     $tri='name';
-connect($USER_SQL,$PASSWORD_SQL,$DATABASE);
+
+if (connect($HOST_SQL, $USER_SQL,$PASSWORD_SQL,$DATABASE) == false) {
+    echo '<script>document.location.href="index.php"</script>';
+	die (include('install.php'));
+}
+
+
 if(is_serie($SERIES_DIR)) 
     $db = 'series';
 else 
@@ -37,7 +44,7 @@ elseif (isset($_GET['genre'])){
 	$sql = "SELECT DISTINCT id_movie, name, note, link, dir, year FROM movies, movie_genre WHERE fk_id_genre = '".$_GET['genre']."' and id_movie = fk_id_movie ORDER BY ".$tri;
 	$folders = null;
 }
-else $sql = "SELECT * FROM $db WHERE dir='".$dir."' ORDER BY ".$tri;
+else $sql = "SELECT * FROM $db WHERE dir='".mysql_real_escape_string(rtrim($dir, DIRECTORY_SEPARATOR))."' ORDER BY ".$tri;
 $req = mysql_query($sql) or die ('Erreur SQL : '.mysql_error());
 $nb_entree_bdd = mysql_num_rows($req); 
 ?>
@@ -94,7 +101,12 @@ $nb_entree_bdd = mysql_num_rows($req);
 			<button value="Rechercher" id="search" onclick="this.form.submit()">Rechercher</button>
 		</form>
 	</div>
-			
+    <div class="header_left" style="margin-right:5px;padding-top:1px;">
+		<form method="GET" action="index.php" >
+    		<input type="hidden" name="indexall">
+			<button value="Indexer" id="index" onclick="this.form.submit()">Tout indexer</button>
+		</form>
+	</div>
 	<div class="header_right">
 		<form method="GET" action="<?php echo $_SERVER['REQUEST_URI'];?>">
 			<select name="tri" onChange="this.form.submit()" style="margin-right:2px;margin-top:3px;">
@@ -143,13 +155,13 @@ if(is_serie($SERIES_DIR)){
 ?>
 <div <?php echo $style;?>><?php 
 if(isset($_GET['recherche'])) 
-    echo '<a href="index.php"><img src="images/home.png" alt="home"></a> <a href="index.php">'.home.'</a> '.research.' ['.$_GET['recherche'].']';
+    echo '<a href="index.php"><img src="images/home.png" alt="home"></a> Résultat de recherche ['.$_GET['recherche'].']';
 else
     if (isset($_GET['genre'])) {
         $sql_search_genre = "SELECT name FROM genres WHERE id_genre=".$_GET['genre'];
         $req_search_genre = mysql_query($sql_search_genre) or die ('Erreur SQL :'.mysql_error());
         $name_genre = mysql_fetch_array($req_search_genre);
-        echo '<a href="index.php"><img src="images/home.png" alt="home"></a> <a href="index.php">'.home.'</a> Genre ['.$name_genre['name'].']';
+        echo '<a href="index.php"><img src="images/home.png" alt="home"></a> Affichage par Genre ['.$name_genre['name'].']';
     } else 
         repertoire($dir);?></div>
 </nav>
@@ -160,8 +172,9 @@ else
 <?php
 if (count($folders)!=0 and !isset($_GET['recherche']) and !isset($_GET['genre'])){
 	echo '<hr>';
+//    $dir1 = rtrim($dir, '/');
 	foreach ($folders as $folder){
-		echo '<a href="?rep='.urlencode($dir.'/').urlencode($folder).'" class="movielist"><p class="folder"><img src="images/folder.png" alt="folder"> <span>'.$folder.'</span></p></a>';
+		echo '<a href="?rep='.urlencode(joinPath($dir,$folder)).'" class="movielist"><p class="folder"><img src="images/folder.png" alt="folder"> <span>'.$folder.'</span></p></a>';
 	}
 	echo '<hr>';
 }
@@ -172,21 +185,29 @@ $i=1;
 while ($data = mysql_fetch_array($req)){
 	echo '<li id="'.$i.'">';
 	//echo '<a href="'.$dir.'/'.$data['link'].'">'.lenght($data['name'],18).'</a><br>';
-	if($root) echo keywordsAdapt($data['link'],$DELETED_WORDS,1).'<br>';
+/*
+    if($root) 
+        echo keywordsAdapt($data['link'],$DELETED_WORDS,1).'<br>';
+*/        
 	if(is_serie($SERIES_DIR)){
 		$affiche = explode('-',$data['id_serie']);
 		$affiche = 's-'.$affiche[0];
 	}
-	else $affiche = $data['id_movie'];
+	else 
+        $affiche = $data['id_movie'];
 	if (is_file('images/poster_small/'.$affiche.'.jpg')){
-		echo '<a href="#null" rel="'.urlencode($data['link']).'"';
-		if ($MODAL) echo 'class="opener movielist"';
+		echo '<a href="#null" rel="'.urlencode($data['link']).'" ';
+		if ($MODAL) 
+            echo 'class="opener movielist"';
 		echo '><img src="images/poster_small/'.$affiche.'.jpg" alt="'.$data['name'].'" class="poster"></a>';
 	}
 	else { 
-	if($data['id_movie'] != '0' and $data['id_movie'] != '0-0-0') echo '<a href="#null" rel="'.urlencode($data['link']).'" class="opener movielist">';
-	echo '<img src="images/movie.png" style="margin-top:20%;" alt="Film" class="poster">';
-	if($data['id_movie'] != '0' and $data['id_movie'] != '0-0-0') echo '</a>';
+	    if($data['id_movie'] != '0' and $data['id_movie'] != '0-0-0') 
+            echo '<a href="#null" rel="'.urlencode($data['link']).'" class="opener movielist">';
+//	    echo '<img src="images/movie.png" style="margin-top:20%;" alt="Film" class="poster">';
+        echo '<img src="images/movie.png" alt="Film" class="poster">';
+	    if($data['id_movie'] != '0' and $data['id_movie'] != '0-0-0') 
+            echo '</a>';
 	}
 	//DIV TOOLTIP
 	echo '<div class="tooltip">
@@ -196,16 +217,20 @@ while ($data = mysql_fetch_array($req)){
 	echo '><tr>';
 	if(isset($data['id_movie']) and $data['id_movie'] != '0' and $data['id_movie'] != '0-0-0') {
         echo '<td><a href="#null" rel="'.urlencode($data['link']).'" class="opener movielist"><img src="images/info.png" alt="Info"></a></td>';
-        echo '<td><a href="#null" rel="'.urlencode($data['link']).'" class="opener movielist"><img src="images/Trash.png" alt="Delete"></a></td>';
+//        echo '<td><a href="#null" rel="'.urlencode($data['link']).'" class="opener movielist"><img src="images/Trash.png" alt="Delete"></a></td>';
+//        echo '<td><a href="update.php?link='.urlencode($data['link']).'&oldcode='.$data['id_movie'].'&cmd=delinfos'><img src="images/Trash.png"></a></td>';
+        echo '<td><a href="update.php?link='.urlencode($data['link']).'&dir='.urlencode($data['dir']).'&action=erase&oldcode='.$data['id_movie'].'" ><img src="images/Trash.png"></a></td>';
 	}
 	echo '<td><a href="';
-	if($FTP) 
-        echo 'ftp://'.$_SERVER['SERVER_NAME'].'/'.$data['dir'].'/'.$data['link'];
-	else 
-        echo $data['dir'].'/'.$data['link'];
-	echo '" class="movielist" title="'.$data['link'].'"><img src="images/down.png"></a></td>';
-	if($root and !is_serie($SERIES_DIR)) 
-        echo '<td><a href="update.php?link='.urlencode($data['link']).'&oldcode='.$data['id_movie'].'" class="nyroModal"><img src="images/update.png"></a></td>';
+
+    if($FTP) 
+        echo 'ftp://'.$_SERVER['SERVER_NAME'].'/';
+    echo joinPath($data['dir'], $data['link']);
+	
+    echo '" class="movielist" title="'.$data['link'].'"><img src="images/down.png"></a></td>';
+	
+    if($root and !is_serie($SERIES_DIR)) 
+        echo '<td><a href="update.php?link='.urlencode($data['link']).'&dir='.urlencode($data['dir']).'&oldcode='.$data['id_movie'].'" class="nyroModal"><img src="images/update.png"></a></td>';
 	echo '</tr>
 	<tr>';
 	if(isset($data['id_movie']) and $data['id_movie'] != '0' and $data['id_movie'] != '0-0-0') {
@@ -218,15 +243,23 @@ while ($data = mysql_fetch_array($req)){
 	echo '</tr>
 	</table>
 	</div>';
-	echo '<div class="title"><h5><a href="';
-	if($FTP) 
-        echo 'ftp://'.$_SERVER['SERVER_NAME'].'/'.$data['dir'].'/'.$data['link'];
-	else 
-        echo $data['dir'].'/'.$data['link'];
-    if (empty($data['year']))
-	    echo '" class="movielist" title="'.$data['link'].'">'.length($data['name'],22).'</a></h5><p></p></div>';
-    else
-        echo '" class="movielist" title="'.$data['link'].'">'.length($data['name'],22).'</a></h5><p>'.$data['year'].'</p></div>';
+    if ($TITLE_WITH_LINK == TRUE) {
+    	echo '<div class="title"><h5><a href="';
+    	if($FTP) 
+            echo 'ftp://'.$_SERVER['SERVER_NAME'].'/';
+        echo joinPath($data['dir'], $data['link']);
+        if (empty($data['year']))
+    	    echo '" class="movielist" title="'.$data['link'].'">'.length($data['name'],22).'</a></h5><p></p></div>';
+        else
+            echo '" class="movielist" title="'.$data['link'].'">'.length($data['name'],22).'</a></h5><p>'.$data['year'].'</p></div>';
+    } else {
+        echo '<div class="title"><h5><a ';
+        if (empty($data['year']))
+    	    echo '" class="movielist" title="'.$data['link'].'">'.length($data['name'],22).'</a></h5><p></p></div>';
+        else
+            echo '" class="movielist" title="'.$data['link'].'">'.length($data['name'],22).'</a></h5><p>'.$data['year'].'</p></div>';
+        
+    }
     
 	echo '<div class="stars">'.stars($data['note']).'</div>';
 	echo '</li>';
@@ -359,7 +392,14 @@ $(document).ready(function(){
      };
 });
 </script>
-<?php if($INDEXATION_AUTO) index_auto($dir,$HIDDEN_FILES,$EXT,$SERIES_DIR);?>
+<?php 
+    if (isset($_GET['indexall'])) {
+        index_all();   
+    } else {
+        if($INDEXATION_AUTO) 
+            index_auto($dir,$HIDDEN_FILES,$EXT,$SERIES_DIR);
+    }
+?>
 
 <div id="loading"><img src="images/ajax-loader.gif" style="margin-top:20%;"><br><br><?php echo loading;?> ...</div>
 

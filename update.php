@@ -1,9 +1,10 @@
 <?php
-require('lib/config.php');
+require_once('lib/config.php');
+require_once('lib/system_config.php');
 require_once('lib/API-allocine.php');
 require_once('lib/API-TMDb.php');
 require_once('lib/functions.php');
-connect($USER_SQL,$PASSWORD_SQL,$DATABASE);
+connect($HOST_SQL, $USER_SQL,$PASSWORD_SQL,$DATABASE);
 ?>
 <!DOCTYPE html>
 <html>
@@ -24,21 +25,22 @@ connect($USER_SQL,$PASSWORD_SQL,$DATABASE);
 <nav><div><?php echo $_GET['link'];?></div></nav>
 <div id="content">
 <?php
-if(empty($_GET['action'])){
-$genres = "";
-$sql = "SELECT * FROM movies WHERE link='".htmlspecialchars(addslashes(urldecode($_GET['link'])))."'";
-$req = mysql_query($sql) or die ('Erreur sql: '.mysql_error());
-$data = mysql_fetch_array($req);
-$sqlgenres = "SELECT name FROM genres, movie_genre WHERE fk_id_movie='".$data['id_movie']."' and id_genre=fk_id_genre";
-$reqgenres = mysql_query($sqlgenres) or die ('Erreur sql: '.mysql_error());
-while($genre = mysql_fetch_array($reqgenres)){
-	$genres .= $genre['name'].',';
-}
-$genres = substr($genres,0,-1);
+    if(empty($_GET['action']))  {
+        $genres = "";
+        $sql = "SELECT * FROM movies WHERE link='".htmlspecialchars(addslashes(urldecode($_GET['link'])))."'";
+        $req = mysql_query($sql) or die ('Erreur sql: '.mysql_error());
+        $data = mysql_fetch_array($req);
+        $sqlgenres = "SELECT name FROM genres, movie_genre WHERE fk_id_movie='".$data['id_movie']."' and id_genre=fk_id_genre";
+        $reqgenres = mysql_query($sqlgenres) or die ('Erreur sql: '.mysql_error());
+        while($genre = mysql_fetch_array($reqgenres)){
+	        $genres .= $genre['name'].',';
+        }
+        $genres = substr($genres,0,-1);
 ?>
 	<div id="tabsup" style="width:85%;min-height:400px;margin-left:auto;margin-right:auto">
 		<ul>
-			<li><a href="#tabs-1">Indexation automatique</a></li>
+    		<li><a href="#tabs-1">Indexation automatique</a></li>
+    		<li><a href="#tabs-2">Modification nom de fichier</a></li>
 			<li><a href="#tabs-3">Indexation manuelle</a></li>
 		</ul>
 		<div id="tabs-1">
@@ -61,6 +63,12 @@ Rechercher un film: <input type="text" name="recherche" class="form">
 ?>
 </select>
 			<input type="submit" value="Rechercher" class="form">
+			</form></p>
+		</div>
+    	<div id="tabs-2">
+			<p><form method="POST" action="update.php?link=<?php urlencode($_GET['link']); ?>&dir=<?php urlencode($_GET['dir']); ?>&action=rename" class="nyroModal" style="text-align:center;">
+Ancien nom : <?php echo pathinfo($_GET['link'], PATHINFO_FILENAME);?> - Nouveau nom : <input type="text" name="newlink" class="form"> <input value="<?php echo urlencode($_GET['link']); ?>" type="hidden" name="link"> <input value="<?php echo urlencode($_GET['dir']); ?>" type="hidden" name="dir">
+			<input type="submit" value="Renommer" class="form">
 			</form></p>
 		</div>
 		<div id="tabs-3">
@@ -99,14 +107,34 @@ Rechercher un film: <input type="text" name="recherche" class="form">
 else
 {
 switch($_GET['action']){
+    case 'rename':
+        // rename file
+        $dir = urldecode($_POST['dir']);
+        $link = urldecode($_POST['link']);
+        $newlink = trim(urldecode($_POST['newlink']));
+        
+        debug("Rename " . joinPath($dir,$link) . " to " . joinPath($dir, $newlink.'.'.pathinfo($link, PATHINFO_EXTENSION)));
+        rename(joinPath($dir, $link), joinPath($dir, $newlink.'.'.pathinfo($link, PATHINFO_EXTENSION)));
+        if(!al_is_serie(joinPath($dir,$link))) {
+            $sql = "UPDATE movies SET link='" . stripslashes($newlink) . "' WHERE link='" . stripslashes($link) ."'";
+            mysql_query($sql) or die ('Erreur SQL '.mysql_error());
+        }
+            
+        echo '<div style="text-align:center;">';
+	    echo '<img src="images/check.png" alt="ok">'.$_GET['link'].' mis &agrave; jour!<br />Recharger la page pour prendre les modifications en compte.</div>';
+        break;
 	case 'auto':
-	if($_POST['database'] == 'Allocine') $moviesSearch = new AlloCine($LANGUAGE);
-	else $moviesSearch = new TMDb($LANGUAGE);
-	try{
-	$recherche = $moviesSearch->movieMultipleSearch($_POST['recherche'],10);}
-	catch(Exception $e){
-		echo 'Erreur : ',$e->getMessage(), "\n";
-	}
+	    if($_POST['database'] == 'Allocine') 
+            $moviesSearch = new AlloCine($LANGUAGE);
+	    else 
+            $moviesSearch = new TMDb($LANGUAGE);
+            
+	    try {
+	        $recherche = $moviesSearch->movieMultipleSearch($_POST['recherche'],10);
+        }
+	    catch(Exception $e) {
+		    echo 'Erreur : ',$e->getMessage(), "\n";
+	    }
 	?>
 	<form method="POST" action="update.php?link=<?php echo urlencode($_GET['link']); ?>&oldcode=<?php echo $_GET['oldcode'];?>&action=auto" class="nyroModal" style="text-align:center;">Nouvelle recherche : <input type="text" name="recherche" class="form">
 <select name="database">
@@ -238,10 +266,10 @@ switch($_GET['action']){
 	
 	case 'erase':
 	if($_GET['oldcode'] != 0){ //erase imdbid
-	$sql = "DELETE FROM movie_genre WHERE fk_id_movie = '".$_GET['oldcode']."'";
-	mysql_query($sql) or die ('Erreur SQL '.mysql_error());
+	    $sql = "DELETE FROM movie_genre WHERE fk_id_movie = '".$_GET['oldcode']."'";
+	    mysql_query($sql) or die ('Erreur SQL '.mysql_error());
 	}
-	// eraase id_movie where link = link
+	// erase id_movie where link = link
 	$sql = "UPDATE movies SET id_movie=0, name=0, original_name=0, length=0, countries=0, directors=0, actors=0, synopsis=0,poster=0, trailer=0, note=0, votes=0, year=0 WHERE link = '".$_GET['link']."'";
 	mysql_query($sql) or die ('Erreur SQL '.mysql_error());
 	

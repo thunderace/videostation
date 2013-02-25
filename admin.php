@@ -2,10 +2,11 @@
 $time_start = microtime(true);
 session_start();
 require_once('lib/config.php');
+require_once('lib/system_config.php');
 
 if((isset($_GET['action']) && $_GET['action'] == 'mod') && isset($_POST['pass'])){
 	/** if($_POST['oldvideobase'] != $_POST['videobase']){
-	$db = mysql_connect("localhost", $USER_SQL, $_POST['pass']);
+	$db = mysql_connect($HOST_SQL, $USER_SQL, $_POST['pass']);
 	if (!$db) {
     	die('Connexion impossible : ' . mysql_error());
 	}
@@ -48,14 +49,9 @@ if((isset($_GET['action']) && $_GET['action'] == 'mod') && isset($_POST['pass'])
 	}
 	$hid_array .= ')';
 
-	if(empty($_POST['login'])) $login='FALSE';
-	else $login='TRUE';
-
 	if(empty($_POST['ftp'])) $ftp='FALSE';
 	else $ftp='TRUE';
 
-	if(empty($_POST['secure'])) $secure='FALSE';
-	else $secure='TRUE';
 
 	if(empty($_POST['inauto'])) $inauto='FALSE';
 	else $inauto='TRUE';
@@ -64,9 +60,8 @@ if((isset($_GET['action']) && $_GET['action'] == 'mod') && isset($_POST['pass'])
 	else $modal='TRUE';
 
 	$content_config = '<?php
-	$APP_NAME = "'.$_POST['title'].'";
-	$VERSION = "'.$VERSION.'";
-	$USER_SQL = "'.$_POST['user'].'";
+    $HOST_SQL = "'.$_POST['host'].'";
+    $USER_SQL = "'.$_POST['user'].'";
 	$PASSWORD_SQL = "'.$_POST['pass'].'";
 	$DATABASE = "'.$_POST['bdd'].'";
 	$EXT = '.$ext_array.';
@@ -77,8 +72,6 @@ if((isset($_GET['action']) && $_GET['action'] == 'mod') && isset($_POST['pass'])
 	$MOVIES_DATABASE = "'.$_POST['videobase'].'" ;
 	$SERIES_DATABASE = "'.$_POST['seriebase'].'" ;
 	$LANGUAGE = "'.$_POST['lang'].'";
-	$SECURE = '.$secure.';
-	$LOGIN = '.$login.';
 	$MODAL = '.$modal.';
 	$FTP = '.$ftp.';
 	$INDEXATION_AUTO = '.$inauto.';
@@ -91,7 +84,7 @@ if((isset($_GET['action']) && $_GET['action'] == 'mod') && isset($_POST['pass'])
 }
 require_once('lib/API-allocine.php');
 require_once('lib/functions.php');
-connect($USER_SQL,$PASSWORD_SQL,$DATABASE);
+connect($HOST_SQL, $USER_SQL,$PASSWORD_SQL,$DATABASE);
 $root = true ; //= admin($root);
 if(!$root) die (include('login.php'));
 ?>
@@ -116,7 +109,7 @@ if(!$root) die (include('login.php'));
 <!-- HEADER -->
 <header>
 
-	<div class="header_left logo"><img src="images/logo.png"></div>
+	<div class="header_left logo"><a href="index.php"><img src="images/logo.png"></a></div>
 
 
 	
@@ -126,10 +119,8 @@ if(!$root) die (include('login.php'));
 	<div class="header_right demo" style="margin-right:8px;padding-top:1px;">
 	<a href="#param"><button id="parameters" value="Infos">Infos</button></a>
 	<div class="ui-widget-content" id="param" aria-label="Login options" style="float:right;">
-		<?php if(isset($_SESSION['user'])) echo '['.$_SESSION['user'].'] | <a href="index.php?action=logout">Logout</a>';
-		else echo '| <a href="login.php">Login</a>';
-		if ($root) echo ' | <a href="index.php">'.home.'</a>';
-		echo ' |';
+		<?php 
+		if ($root) echo ' <a href="index.php">'.home.'</a>';
 		$stats = countVideos();?>
 		<hr>
 		<table border="0">
@@ -158,7 +149,6 @@ if(!$root) die (include('login.php'));
 		<li><a href="list_non_indexed.php"><?php echo nonindexedvideos;?></a></li>
 		<li><a href="#tabs-4"><?php echo wrongindexedvideos;?></a></li>
 		<li><a href="#tabs-3">Erreurs</a></li>
-		<li><a href="#tabs-2"><?php echo donate;?></a></li>
 	</ul>
 	<!-- PARAMETRES DE BASES -->
 	<div id="tabs-1">
@@ -166,18 +156,6 @@ if(!$root) die (include('login.php'));
 		<form method="POST" action="admin.php?action=mod">
 		<table>
 			<?php if(isset($message)) echo '<tr><td colspan="2" style="text-align:center;color:green;">'.$message.'</td></tr>';?>
-			<tr>
-				<td><?php echo version;?></td><td><?php echo $VERSION;?></td>
-			</tr>
-			<tr>
-				<td><?php echo appname;?></td><td><input type="text" name="title" value=<?php echo "\"".$APP_NAME."\"";?>></td>
-			</tr>
-			<tr>
-				<td><?php echo login;?></td><td><input type="checkbox" name="login" value="login" <?php if($LOGIN) echo 'checked';?>></td>
-			</tr>
-			<tr>
-				<td><?php echo secureconnexion;?></td><td><input type="checkbox" name="secure" value="secure" <?php if($SECURE) echo 'checked';?>></td>
-			</tr>
 			<tr>
 				<td><?php echo modal;?></td><td><input type="checkbox" name="modal" value="modal" <?php if($MODAL) echo 'checked';?>></td>
 			</tr>
@@ -201,6 +179,9 @@ if(!$root) die (include('login.php'));
 					<option value="en" <?php if($LANGUAGE == 'en') echo 'selected';?>>English</option>
 				</select>
 				</td>
+			</tr>
+    		<tr>
+				<td><?php echo sqlhost;?></td><td><input type="text" name="host" value=<?php echo "\"".$HOST_SQL."\"";?>></td>
 			</tr>
 			<tr>
 				<td><?php echo sqluser;?></td><td><input type="text" name="user" value=<?php echo "\"".$USER_SQL."\"";?>></td>
@@ -241,7 +222,7 @@ if(!$root) die (include('login.php'));
 	$req = mysql_query($sql) or die ('Erreur SQL '.mysql_error());
 	while($data = mysql_fetch_array($req)){
 		if(!mb_ereg($SERIES_DIR,$data['dir'])){
-			echo '<p rel="'.$data['id_movie'].'"><span class="link">'.$data['link'].'</span> <a href="update.php?link='.urlencode($data['link']).'&oldcode='.$data['id_movie'].'" class="nyroModal">
+			echo '<p rel="'.$data['id_movie'].'"><span class="link">'.$data['link'].'</span> <a href="update.php?link='.urlencode($data['link']).'&dir='.urlencode($data['dir']).'&oldcode='.$data['id_movie'].'" class="nyroModal">
 			<button value="Modifier">Modifier</button></a></p>';
 		}
 	}
@@ -268,20 +249,6 @@ if(!$root) die (include('login.php'));
 	?>
 	</div>
 	</div>
-	
-	<!-- FAIRE UN DON -->
-	<div id="tabs-2">
-	<p style="width:100%;">
-	<?php echo donatetext;?>
-	<form action="https://www.paypal.com/cgi-bin/webscr" method="post">
-<input type="hidden" name="cmd" value="_s-xclick">
-<input type="hidden" name="encrypted" value="-----BEGIN PKCS7-----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-----END PKCS7-----
-">
-<input type="image" align="center" src="https://www.paypalobjects.com/fr_FR/CH/i/btn/btn_donateCC_LG.gif" border="0" name="submit" alt="PayPal - la solution de paiement en ligne la plus simple et la plus sécurisée !">
-<img alt="" border="0" src="https://www.paypalobjects.com/fr_FR/i/scr/pixel.gif" width="1" height="1">
-</form>
-	</p>
-	</div>
 </div>
 
 </div>
@@ -290,7 +257,7 @@ if(!$root) die (include('login.php'));
 <div class="license">
 <a rel="license" href="http://creativecommons.org/licenses/by-nc-nd/3.0/"><img alt="Licence Creative Commons" style="border-width:0" src="images/cc88x31.png" /></a><br /><span style="display:none;" class="licensetext">Cette application est mise à disposition selon les termes de la <a rel="license" href="http://creativecommons.org/licenses/by-nc-nd/3.0/">Licence CC BY-NC-ND 3.0</a>.</span></div>
 <div class="generation"><?php echo pagegeneration.' '.round((microtime(true)-$time_start),3);?> s.<br><br>Version : <?php echo $VERSION;?></div>
-<div class="hosted">Last version available on <br><a href="https://github.com/teebo/VideoStation" target="_blank"><img src="images/github.png" style="height:30px;"></a></div>
+<div class="hosted">Last version available on <br><a href="https://github.com/thunderace/videostation" target="_blank"><img src="images/github.png" style="height:30px;"></a></div>
 <div style="clear:both;"></div>
 </footer>
 <script>

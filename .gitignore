@@ -168,3 +168,5 @@ lib/config.php
 #local folder link
 video
 images/poster_small
+videostation.log
+

@@ -1,6 +1,7 @@
 <?php
-require('lib/config.php');
-require('lib/lang.php');
+require_once('lib/config.php');
+require_once('lib/system_config.php');
+require_once('lib/lang.php');
 if($INSTALL === TRUE){
 session_unset();
 session_destroy();

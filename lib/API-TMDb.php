@@ -1,5 +1,6 @@
 <?php
-require('config.php');
+require_once('config.php');
+require_once('system_config.php');
 /*****************************************************************************
 
 
