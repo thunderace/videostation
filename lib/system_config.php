@@ -1,0 +1,11 @@
+<?php
+    $INSTALL = FALSE;
+    $TRAILER = FALSE;
+    $POSTER_WITH_VIDEO = TRUE;
+    $CLEAN_AND_RENAME_MOVIES = FALSE;
+    $SAFE_MODE=TRUE;
+    $DRY_RUN = TRUE;
+    $APP_NAME = "Video Station";
+    $VERSION = "1.1";
+    $TITLE_WITH_LINK = FALSE;
+?>
