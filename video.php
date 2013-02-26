@@ -7,26 +7,27 @@ require_once('lib/functions.php');
 require_once('lib/lang.php');
 connect($HOST_SQL, $USER_SQL,$PASSWORD_SQL,$DATABASE);
 $link=addslashes(urldecode($_GET['link']));
+$dir=$_GET['rep'];
+if (al_is_serie($dir)){
+    $sql = "SELECT * FROM series WHERE link='".$link."'";
+    $req = mysql_query($sql) or die ('Erreur sql '.$sql.' '.mysql_error());
+    $infos = mysql_fetch_array($req);
+    $serie = true;
+} else {
+    $genres = "";
+    $sql = "SELECT * FROM movies WHERE link='".$link."'";
+    $req = mysql_query($sql) or die ('Erreur sql '.$sql.' '.mysql_error());
+    $infos = mysql_fetch_array($req);
+    $serie = false;
+    $sqlgenres = "SELECT name FROM genres, movie_genre WHERE fk_id_movie='".$infos['id_movie']."' and id_genre=fk_id_genre";
+    $reqgenres = mysql_query($sqlgenres) or die ('Erreur sql: '.mysql_error());
+    while($genre = mysql_fetch_array($reqgenres)){
+	    if(preg_match('#'.$genre['name'].'#',$genres)=='0') 
+            $genres .= $genre['name'].',';
+    }
+    $genres = substr($genres,0,-1);
+}
 
-if (is_serie($SERIES_DIR)){
-$sql = "SELECT * FROM series WHERE link='".$link."'";
-$req = mysql_query($sql) or die ('Erreur sql '.$sql.' '.mysql_error());
-$infos = mysql_fetch_array($req);
-$serie = true;
-}
-else{
-$genres = "";
-$sql = "SELECT * FROM movies WHERE link='".$link."'";
-$req = mysql_query($sql) or die ('Erreur sql '.$sql.' '.mysql_error());
-$infos = mysql_fetch_array($req);
-$serie = false;
-$sqlgenres = "SELECT name FROM genres, movie_genre WHERE fk_id_movie='".$infos['id_movie']."' and id_genre=fk_id_genre";
-$reqgenres = mysql_query($sqlgenres) or die ('Erreur sql: '.mysql_error());
-while($genre = mysql_fetch_array($reqgenres)){
-	if(preg_match('#'.$genre['name'].'#',$genres)=='0') $genres .= $genre['name'].',';
-}
-$genres = substr($genres,0,-1);
-}
 if(!$MODAL){
 ?>
 <!DOCTYPE html>

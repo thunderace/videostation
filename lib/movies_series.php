@@ -10,17 +10,17 @@ PhpConsole::start(true, true, dirname(__FILE__));
 
 
 
-function index($dir, $link) {
+function index($dir, $link, $force) {
 	if(al_is_serie($dir)){
-		series($dir, $link);
+		series($dir, $link, $force);
 	}
 	else {
-		movies($dir, $link);
+		movies($dir, $link, $force);
 	}
 }
 
 
-function movies($dir, $link) {
+function movies($dir, $link, $force) {
     global $MOVIES_DATABASE, $LANGUAGE, $DELETED_WORDS, $ALWAYS_UPDATE, $USER_SQL,$PASSWORD_SQL,$DATABASE, $CLEAN_AND_RENAME_MOVIES, $HOST_SQL;
     //$$AL$$
     if ($CLEAN_AND_RENAME_MOVIES) {
@@ -32,7 +32,7 @@ function movies($dir, $link) {
     $sql = mysql_query("SELECT link FROM movies WHERE link='".mysql_real_escape_string($link)."' AND dir='" . mysql_real_escape_string(rtrim($dir, DIRECTORY_SEPARATOR)) . "'");
     $data=mysql_fetch_array($sql);
 	if(!empty($data['link'])) {
-		if ($ALWAYS_UPDATE == TRUE)
+		if ($ALWAYS_UPDATE == TRUE || $force == 1)
 			$sql = mysql_query("DELETE FROM movies WHERE link='".mysql_real_escape_string($link)."' AND dir='" . mysql_real_escape_string(rtrim($dir, DIRECTORY_SEPARATOR)) . "'");
 		else {
 			echo joinPath($dir,$link) . " Already indexed";
@@ -153,19 +153,18 @@ function movies($dir, $link) {
 }
 
 
-function series($dir, $link) {
-    global $SERIES_DATABASE, $LANGUAGE, $DELETED_WORDS, $USER_SQL,$PASSWORD_SQL,$DATABASE, $HOST_SQL;
+function series($dir, $link, $force) {
+    global $SERIES_DATABASE, $LANGUAGE, $DELETED_WORDS, $USER_SQL,$PASSWORD_SQL,$DATABASE, $HOST_SQL, $ALWAYS_UPDATE;
 	
 	connect($HOST_SQL, $USER_SQL,$PASSWORD_SQL,$DATABASE);
 
 	$sql = mysql_query("SELECT link FROM series WHERE link='".mysql_real_escape_string($link)."' AND dir='" . mysql_real_escape_string($dir) . "'");
 	$data=mysql_fetch_array($sql);
 	if(!empty($data['link'])) {
-		if ($ALWAYS_UPDATE == TRUE)
+		if ($ALWAYS_UPDATE == TRUE || $force == 1)
 			$sql = mysql_query("DELETE FROM series WHERE link='".mysql_real_escape_string($link)."' AND dir='" . mysql_real_escape_string($dir) . "'");
 		else {
 			echo $dir.DIRECTORY_SEPARATOR.$link . " Already indexed";
-            logInfo($dir.DIRECTORY_SEPARATOR.$link . " Already indexed");
 			return;
 		}
 	}

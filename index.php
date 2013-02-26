@@ -14,6 +14,8 @@ if (!isset($_GET['rep']))
     $_GET['rep'] = "";
 $dir = rep(urldecode($_GET['rep']));
 
+
+
 if (isset($_GET['tri']))
     $tri = tri($_GET['tri']);
 else
@@ -25,7 +27,7 @@ if (connect($HOST_SQL, $USER_SQL,$PASSWORD_SQL,$DATABASE) == false) {
 }
 
 
-if(is_serie($SERIES_DIR)) 
+if(al_is_serie($dir)) 
     $db = 'series';
 else 
     $db = 'movies';
@@ -103,8 +105,15 @@ $nb_entree_bdd = mysql_num_rows($req);
 	</div>
     <div class="header_left" style="margin-right:5px;padding-top:1px;">
 		<form method="GET" action="index.php" >
-    		<input type="hidden" name="indexall">
-			<button value="Indexer" id="index" onclick="this.form.submit()">Tout indexer</button>
+            <?php   if ($dir == $VIDEO_DIR) {
+                    	echo '<input type="hidden" name="indexall">';
+			            echo '<button value="Indexer" id="index" onclick="this.form.submit()">Tout indexer</button>';
+                    } else {
+                        echo '<input type="hidden" name="indexhere">';
+                        echo '<input type="hidden" name="rep" value="' . $dir . '">';
+    		            echo '<button value="Indexer" id="index" onclick="this.form.submit()">réindexer</button>';
+                    }
+            ?>
 		</form>
 	</div>
 	<div class="header_right">
@@ -147,7 +156,7 @@ $nb_entree_bdd = mysql_num_rows($req);
 <nav class="margin">
 <?php
 $style = "";
-if(is_serie($SERIES_DIR)){
+if(al_is_serie($dir)){
     $src = banner_serie();
     if(!empty($src)) 
         $style='style="background-image:url('.$src.');" class="banner"';
@@ -172,7 +181,6 @@ else
 <?php
 if (count($folders)!=0 and !isset($_GET['recherche']) and !isset($_GET['genre'])){
 	echo '<hr>';
-//    $dir1 = rtrim($dir, '/');
 	foreach ($folders as $folder){
 		echo '<a href="?rep='.urlencode(joinPath($dir,$folder)).'" class="movielist"><p class="folder"><img src="images/folder.png" alt="folder"> <span>'.$folder.'</span></p></a>';
 	}
@@ -189,24 +197,25 @@ while ($data = mysql_fetch_array($req)){
     if($root) 
         echo keywordsAdapt($data['link'],$DELETED_WORDS,1).'<br>';
 */        
-	if(is_serie($SERIES_DIR)){
+	if(al_is_serie($dir)){
 		$affiche = explode('-',$data['id_serie']);
 		$affiche = 's-'.$affiche[0];
 	}
 	else 
         $affiche = $data['id_movie'];
-	if (is_file('images/poster_small/'.$affiche.'.jpg')){
+
+    if (is_file('images/poster_small/'.$affiche.'.jpg')){
 		echo '<a href="#null" rel="'.urlencode($data['link']).'" ';
 		if ($MODAL) 
             echo 'class="opener movielist"';
 		echo '><img src="images/poster_small/'.$affiche.'.jpg" alt="'.$data['name'].'" class="poster"></a>';
 	}
 	else { 
-	    if($data['id_movie'] != '0' and $data['id_movie'] != '0-0-0') 
+	    if(isset($data['id_movie']) && $data['id_movie'] != '0' && $data['id_movie'] != '0-0-0') 
             echo '<a href="#null" rel="'.urlencode($data['link']).'" class="opener movielist">';
 //	    echo '<img src="images/movie.png" style="margin-top:20%;" alt="Film" class="poster">';
         echo '<img src="images/movie.png" alt="Film" class="poster">';
-	    if($data['id_movie'] != '0' and $data['id_movie'] != '0-0-0') 
+	    if(isset($data['id_movie']) && $data['id_movie'] != '0' and $data['id_movie'] != '0-0-0') 
             echo '</a>';
 	}
 	//DIV TOOLTIP
@@ -229,7 +238,7 @@ while ($data = mysql_fetch_array($req)){
 	
     echo '" class="movielist" title="'.$data['link'].'"><img src="images/down.png"></a></td>';
 	
-    if($root and !is_serie($SERIES_DIR)) 
+    if($root and !al_is_serie($dir)) 
         echo '<td><a href="update.php?link='.urlencode($data['link']).'&dir='.urlencode($data['dir']).'&oldcode='.$data['id_movie'].'" class="nyroModal"><img src="images/update.png"></a></td>';
 	echo '</tr>
 	<tr>';
@@ -238,7 +247,7 @@ while ($data = mysql_fetch_array($req)){
         echo '<td>'.delinfos.'</td>';
 	}
 	echo '<td>'.link.'</td>';
-	if($root and !is_serie($SERIES_DIR)) 
+	if($root and !al_is_serie($dir)) 
         echo '<td>'.update.'</td>';
 	echo '</tr>
 	</table>
@@ -396,8 +405,13 @@ $(document).ready(function(){
     if (isset($_GET['indexall'])) {
         index_all();   
     } else {
-        if($INDEXATION_AUTO) 
-            index_auto($dir,$HIDDEN_FILES,$EXT,$SERIES_DIR);
+        if (isset($_GET['indexhere'])) {
+            debug($dir);
+            index_auto($dir,$HIDDEN_FILES,$EXT,$SERIES_DIR, 1);
+        } else {
+            if($INDEXATION_AUTO) 
+                index_auto($dir,$HIDDEN_FILES,$EXT,$SERIES_DIR);
+        }
     }
 ?>
 

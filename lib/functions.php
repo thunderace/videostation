@@ -18,8 +18,13 @@ function al_is_serie($dir){
     global $SERIES_DIR;
     if(mb_ereg($SERIES_DIR, $dir)) 
         return true;
-    else 
+    else {
+        // try to find serie.videostation
+        $seriefile = $dir . '/serie.videostation';
+        if (file_exists($seriefile))
+            return true;
         return false;
+    }
 }
 
 
@@ -131,11 +136,14 @@ function stars($note){
 
 function savePoster($link, $img, $code)
 {
-    global $POSTER_WITH_VIDEO;
+    global $POSTER_WITH_VIDEO, $SERIES_DIR;
     // store to local dir
     copy($img,'../images/poster_small/'.$code.'.jpg');   
+    $path_parts = pathinfo($link);
+    $seriefile = $path_parts['dirname'] . '/serie.videostation';
+    if (file_exists($seriefile) || al_is_serie($path_parts['dirname']))
+        copy($img,'../images/poster_small/s-'.$code.'.jpg');
     if ($POSTER_WITH_VIDEO == TRUE) {
-        $path_parts = pathinfo($link);
         copy('../images/poster_small/'.$code.'.jpg',$path_parts['dirname'] . '/' . $path_parts['filename'] . '.jpg');   
     }
     
@@ -268,13 +276,14 @@ function ignore_dir($dir) {
     return false;
 }
 
-
+/*
 function is_serie($SERIES_DIR){
     if(mb_ereg($SERIES_DIR,urldecode($_GET['rep']))) 
         return true;
     else 
         return false;
 }
+*/
 
 function banner_serie(){
     global $DELETED_WORDS;
@@ -282,11 +291,12 @@ function banner_serie(){
 	$infos = explode('/',urldecode($_GET['rep']));
 	if(count($infos)>= 4){ // $$AL$$ TODO 
 		$name = $infos[count($infos) - 1];
+        debug("search serie " . $name);
 		$recherche = $allo->serieSearch(keywordsAdapt($name,$DELETED_WORDS,1));//recherche serie
 		if (!empty($recherche['code'])){
-		$id=$recherche['code'];
-		$serie = $allo->serieInfos($recherche['code']);
-		return $serie['topBanner'];
+		    $id=$recherche['code'];
+		    $serie = $allo->serieInfos($id);
+		    return $serie['topBanner'];
 		}
 	}
 }
@@ -369,8 +379,10 @@ function rep($rep){
 	} else {
         if ($rep == '.' or $rep == './') 
             $dir = $VIDEO_DIR;
-	    else 
-            $dir = addslashes($rep);
+	    else {
+//$$AL$$            $dir = addslashes($rep);
+            $dir = $rep;
+	    }
 	}
     return $dir;
 }
@@ -426,7 +438,7 @@ function scanFileNameRecursivly($path, &$dirArray, &$fileArray, $base_movies)
     			$extension = strtolower(pathinfo($f, PATHINFO_EXTENSION));
 				if (in_array($extension, $EXT)) {
     				if(!in_array($dir,$base_movies)){
-					    $fileArray[] = $dir;
+					    $fileArray[] = urlencode($dir);
     				}
 				}
 			}
@@ -448,12 +460,6 @@ function index_all() {
 	}
 
     scanFileNameRecursivly($VIDEO_DIR, $dirArray, $fileArray, $base_movies );
-/*
-foreach($dirArray as $dir) {
-        logInfo("index_all - Scanning " .  $dir . " dir");
-//        index_auto($dir, $HIDDEN_FILES, $EXT, $SERIES_DIR);
-    }  
-*/    
     logInfo("index_all - File count : " .  count($fileArray));
     $tot = count($fileArray);
 	echo '<script>';
@@ -498,8 +504,9 @@ foreach($dirArray as $dir) {
 	echo '</script>';
 }
 
-function index_auto($dir,$HIDDEN_FILES,$ext,$SERIES_DIR){
-	if(is_serie($SERIES_DIR)) 
+function index_auto($dir,$HIDDEN_FILES,$ext,$SERIES_DIR, $force_index = 0){
+//	if(is_serie($SERIES_DIR)) 
+    if(al_is_serie($dir)) 
         $sql = "SELECT link FROM series WHERE dir='".mysql_real_escape_string(rtrim($dir, DIRECTORY_SEPARATOR))."' UNION SELECT link FROM errors WHERE dir='".mysql_real_escape_string(rtrim($dir, DIRECTORY_SEPARATOR))."' AND type='serie'";
 	else 
         $sql = "SELECT link FROM movies WHERE dir='".mysql_real_escape_string(rtrim($dir, DIRECTORY_SEPARATOR))."' UNION SELECT link FROM errors WHERE dir='".mysql_real_escape_string(rtrim($dir, DIRECTORY_SEPARATOR))."' AND type='movie'";
@@ -516,9 +523,10 @@ function index_auto($dir,$HIDDEN_FILES,$ext,$SERIES_DIR){
 				$extension = strtolower(pathinfo($file, PATHINFO_EXTENSION));
 				if (in_array($extension, $ext)){
 					if(!in_array($file,$base_movies)){
+                        debug("index_auto loop non indexed : " . $file);
 						$nonindexed[] = urlencode($file);
 					}
-					$files[] = $file;
+					$files[] = urlencode($file);
 				}
 			}	
     	}
@@ -527,11 +535,19 @@ function index_auto($dir,$HIDDEN_FILES,$ext,$SERIES_DIR){
 	else echo "Echec ouverture repertoire". $dir;
     
     
-	$tot = count($nonindexed);
+    
 	echo '<script>';
 	//echo '$("#empty").html("<div id=\"progressbar\" style=\"width:200px;\"></div>");';
 	echo "\n";
-	echo 'var tabnonindexed = '.php2js($nonindexed).';';
+    if ($force_index == 1) {
+        $tot = count($files);
+    echo 'var tabnonindexed = '.php2js($files).';';
+    } else {
+        $tot = count($nonindexed);
+        echo 'var tabnonindexed = '.php2js($nonindexed).';';
+    }
+    debug("auto_index - non indexed : " . $tot );
+    debug("auto_index - all files  : " . count($files) );
 	echo "\n";
 	echo 'if(tabnonindexed.length > 0){
 			$("#indexing").html("<br>'.indexing.'<br><br><div id=\"progressbar\" style=\"width:200px;\"></div><span id=\"nbindex\"></span><div id=\"error\"></div>").show();
@@ -544,7 +560,7 @@ function index_auto($dir,$HIDDEN_FILES,$ext,$SERIES_DIR){
 			$.ajax({
   				type: "GET",
   				url: "lib/index_movie.php",
-   				data: "rep='.urlencode($dir).'&link="+value,
+   				data: "rep='.urlencode($dir).'&link="+value+"&force='.$force_index.'",
    				error:function(msg){
      				alert( "Error ! : " + msg );
    				},
@@ -559,7 +575,8 @@ function index_auto($dir,$HIDDEN_FILES,$ext,$SERIES_DIR){
 						$(\'#error\').html(data);
 					}
 					if(i == '.$tot.'){
-						location.reload();
+    					location.replace("index.php?rep='.urlencode($dir).'");
+//						location.reload();
 					}
 				i++;	
 				}
@@ -570,10 +587,13 @@ function index_auto($dir,$HIDDEN_FILES,$ext,$SERIES_DIR){
 	echo '</script>';
 	$req = mysql_query($sql) or die ('Erreur SQL : '.mysql_error());
 	$nb_entree_bdd = mysql_num_rows($req); 
+    debug("auto_index nb_entree_bdd " . $nb_entree_bdd);
+    debug("auto_index count files " . count($files));
 	if ($nb_entree_bdd > count($files)){ //si le nb d'entree de la table mysql > nb entree effectif du rep
 		$i = 0;
 		while ($data = mysql_fetch_array($req)){
 			if (!in_array($data['link'],$files)){
+                debug("index_auto " . $data['link']);
 				mysql_query('DELETE FROM movies WHERE link="'.addslashes($data['link']).'"') or die ('Erreur SQL : '.mysql_error());
 				mysql_query("DELETE FROM movie_genre WHERE fk_id_movie = '".$data['id_movie']."'") or die ('Erreur SQL '.mysql_error());
 				echo addslashes($data['link']).' mis a jour<br>';
@@ -586,6 +606,7 @@ function index_auto($dir,$HIDDEN_FILES,$ext,$SERIES_DIR){
 
 function folders($dir,$HIDDEN_FILES){
 	$folders = array();
+    $dir = str_replace("\\", "", $dir);
 	if ($handle = opendir($dir)) {
 		while (false !== ($file = readdir($handle))) {
 			if (!in_array($file, $HIDDEN_FILES) && is_dir($dir.'/'.$file)) {

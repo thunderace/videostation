@@ -10,14 +10,20 @@ require_once('functions.php');
 require_once('movies_series.php');
 connect($HOST_SQL, $USER_SQL,$PASSWORD_SQL,$DATABASE);
 
-$link=urldecode($_GET['link']);
+logInfo("index_movie.php - link " . $_GET['link']);
+//$link=urldecode($_GET['link']);
+$link=$_GET['link'];
 if (!isset($_GET['rep'])) {
     $dir = dirname($link);
     $link = basename($link);
 } else {
     $dir=urldecode($_GET['rep']);
 }
-logInfo("index_movie.php - indexing " . joinPath($dir, $link));
-index($dir, $link);
+$force = 0;
+if (isset($_GET['force']))
+    $force = $_GET['force'];
+    
+logInfo("index_movie.php - indexing " . joinPath($dir, $link) . " force = " . $force);
+index($dir, $link, $force);
 
 ?>

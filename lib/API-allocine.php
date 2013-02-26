@@ -231,7 +231,7 @@ public function serieSearch($keywords){
 		$keywords = urlencode($keywords);
 		//echo $keywords;
         $url = $this->get_url($keywords,true);
-//        debug("serieSearch " . $url);
+        debug("serieSearch " . $url);
 		$this->content = file_get_contents($url);
 		/**if($this->content === false){
 			throw new Exception('Failed to open stream : '.$this->url);
@@ -246,14 +246,20 @@ public function serieSearch($keywords){
             $title = $this->data['feed']['tvseries']['0']['originalTitle'];
 		else 
             $title = $this->data['feed']['tvseries']['0']['title'];
-            
+
+    	if (empty($this->data['feed']['tvseries']['0']['castingShort']['creators'])) 
+            $creators = "";
+		else 
+            $creators = $this->data['feed']['tvseries']['0']['castingShort']['creators'];
+
+
 		$this->result = array(
 			'code'=>$this->data['feed']['tvseries']['0']['code'],
 			'titre'=>$title,
 			'titre-original'=>$this->data['feed']['tvseries']['0']['originalTitle'],
 			'annee'=>$this->data['feed']['tvseries']['0']['yearStart'],
 			'acteurs'=>$this->data['feed']['tvseries']['0']['castingShort']['actors'],
-			'directeur'=>$this->data['feed']['tvseries']['0']['castingShort']['creators'],
+			'directeur'=>$creators,
 			'note-public'=>round($this->data['feed']['tvseries']['0']['statistics']['userRating'],1),
 			'affiche'=>$this->data['feed']['tvseries']['0']['poster']['href']);
 		//$this->browseArray($this->data);
@@ -307,35 +313,38 @@ public function episodeInfos($id){
 	
 public function serieInfos($id){
 	$this->url = $this->url_site_lang.$this::UrlSerie.'code='.$id.'&partner='.$this->Options['partner'].'&format=json&profile=large';
-//    debug("serieInfos " . $this->url);
-		$this->content = file_get_contents($this->url);
-		$this->data = json_decode($this->content,true);
-		$tabseason = $this->data['tvseries']['season'];
-		for($i=0;$i<count($tabseason);$i++){
-			$seasoncode[$tabseason[$i]['seasonNumber']] = $tabseason[$i]['code'];
-		}
-		if (empty($this->data['tvseries']['topBanner']['href'])) 
-            $topBanner = "";
-        else
-            $topBanner = $this->data['tvseries']['topBanner']['href'];
-        
-		$this->result = array(
-			'code'=>$this->data['tvseries']['code'],
-			'titre-original'=>$this->data['tvseries']['originalTitle'],
-			'titre'=>$this->data['tvseries']['originalTitle'],
-			'affiche'=>$this->data['tvseries']['poster']['href'],
-			'acteurs'=>$this->data['tvseries']['castingShort']['actors'],
-			'resume'=>$this->data['tvseries']['synopsis'],
-			'nb-saisons'=>$this->data['tvseries']['seasonCount'],
-			'nb-episodes'=>$this->data['tvseries']['episodeCount'],
-			'longueur'=>$this->data['tvseries']['formatTime'].'min',
-			'tabSaisons'=>$seasoncode,
-			'topBanner'=>$topBanner);
+    debug("serieInfos " . $this->url);
+	$this->content = file_get_contents($this->url);
+	$this->data = json_decode($this->content,true);
+	$tabseason = $this->data['tvseries']['season'];
+	for($i=0;$i<count($tabseason);$i++){
+		$seasoncode[$tabseason[$i]['seasonNumber']] = $tabseason[$i]['code'];
+	}
+	if (empty($this->data['tvseries']['topBanner']['href'])) 
+        $topBanner = "";
+    else
+        $topBanner = $this->data['tvseries']['topBanner']['href'];
+    if (empty($this->data['tvseries']['title']))
+        $title = $this->data['tvseries']['originalTitle'];
+    else
+        $title = $this->data['tvseries']['title'];
+	$this->result = array(
+		'code'=>$this->data['tvseries']['code'],
+		'titre-original'=>$this->data['tvseries']['originalTitle'],
+		'titre'=>$title,
+		'affiche'=>$this->data['tvseries']['poster']['href'],
+		'acteurs'=>$this->data['tvseries']['castingShort']['actors'],
+		'resume'=>$this->data['tvseries']['synopsis'],
+		'nb-saisons'=>$this->data['tvseries']['seasonCount'],
+		'nb-episodes'=>$this->data['tvseries']['episodeCount'],
+		'longueur'=>$this->data['tvseries']['formatTime'].'min',
+		'tabSaisons'=>$seasoncode,
+		'topBanner'=>$topBanner);
 					
 		//$this->browseArray($this->result);
 	
 		return $this->result;
-	}
+}
 
 public function movieMultipleSearch($keywords,$count) {
 		$keywords = urlencode($keywords);
