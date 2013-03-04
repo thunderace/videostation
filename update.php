@@ -1,9 +1,10 @@
 <?php
 require_once('lib/config.php');
 require_once('lib/system_config.php');
+require_once('lib/functions.php');
 require_once('lib/API-allocine.php');
 require_once('lib/API-TMDb.php');
-require_once('lib/functions.php');
+require_once('lib/API-TMDbV3.php');
 connect($HOST_SQL, $USER_SQL,$PASSWORD_SQL,$DATABASE);
 ?>
 <!DOCTYPE html>
@@ -36,6 +37,7 @@ connect($HOST_SQL, $USER_SQL,$PASSWORD_SQL,$DATABASE);
 	        $genres .= $genre['name'].',';
         }
         $genres = substr($genres,0,-1);
+        
 ?>
 	<div id="tabsup" style="width:85%;min-height:400px;margin-left:auto;margin-right:auto">
 		<ul>
@@ -45,7 +47,7 @@ connect($HOST_SQL, $USER_SQL,$PASSWORD_SQL,$DATABASE);
 		</ul>
 		<div id="tabs-1">
 			<p><form method="POST" action="update.php?link=<?php echo urlencode($_GET['link']); ?>&oldcode=<?php echo $_GET['oldcode'];?>&action=auto" class="nyroModal" style="text-align:center;">
-Rechercher un film: <input type="text" name="recherche" class="form">
+Rechercher un film: <input type="text" name="recherche" class="form" value="<?php echo pathinfo($_GET['link'], PATHINFO_FILENAME);?>">
 <select name="database">
 <?php
 	if ($MOVIES_DATABASE == "TMDb") 
@@ -58,8 +60,6 @@ Rechercher un film: <input type="text" name="recherche" class="form">
 	echo '<option value="Allocine">Allocine</option>';
 	echo '<option value="TMDb">TMDb</option>';
 	}
-//	<option value="Allocine">Allocine</option>
-//	<option value="TMDb">TMDb</option>
 ?>
 </select>
 			<input type="submit" value="Rechercher" class="form">
@@ -116,7 +116,7 @@ switch($_GET['action']){
         debug("Rename " . joinPath($dir,$link) . " to " . joinPath($dir, $newlink.'.'.pathinfo($link, PATHINFO_EXTENSION)));
         rename(joinPath($dir, $link), joinPath($dir, $newlink.'.'.pathinfo($link, PATHINFO_EXTENSION)));
         if(!al_is_serie(joinPath($dir,$link))) {
-            $sql = "UPDATE movies SET link='" . stripslashes($newlink) . "' WHERE link='" . stripslashes($link) ."'";
+            $sql = "UPDATE movies SET link='" . mysql_real_escape_string(stripslashes($newlink).'.'.pathinfo($link, PATHINFO_EXTENSION)) . "' WHERE link='" . mysql_real_escape_string(stripslashes($link)) ."'";
             mysql_query($sql) or die ('Erreur SQL '.mysql_error());
         }
             
@@ -126,8 +126,10 @@ switch($_GET['action']){
 	case 'auto':
 	    if($_POST['database'] == 'Allocine') 
             $moviesSearch = new AlloCine($LANGUAGE);
-	    else 
-            $moviesSearch = new TMDb($LANGUAGE);
+	    else {
+//            $moviesSearch = new TMDb($LANGUAGE);
+            $moviesSearch = new TMDbnew($LANGUAGE);
+	    }
             
 	    try {
 	        $recherche = $moviesSearch->movieMultipleSearch($_POST['recherche'],10);
@@ -187,19 +189,22 @@ switch($_GET['action']){
 	break;
 	
 	case 'autoupdate':
-	if($_GET['oldcode'] != 0){
-	$sql = "DELETE FROM movie_genre WHERE fk_id_movie = '".$_GET['oldcode']."'";
-	mysql_query($sql) or die ('Erreur SQL '.mysql_error());
-	}
-	switch ($_GET['database']){
-		case 'Allocine':
-		$movie = new Allocine($LANGUAGE);
-		break;
-		case 'TMDb':
-		$movie = new TMDb($LANGUAGE);
-		break;
-	}
+        if($_GET['oldcode'] != 0){
+    	    $sql = "DELETE FROM movie_genre WHERE fk_id_movie = '".$_GET['oldcode']."'";
+        	mysql_query($sql) or die ('Erreur SQL '.mysql_error());
+            // get DDB source
+    	}
+    	switch ($_GET['database']){
+	    	case 'Allocine':
+		        $movie = new Allocine($LANGUAGE);
+		        break;
+		    case 'TMDb':
+//      		$movie = new TMDb($LANGUAGE);
+                $movie = new TMDbnew($LANGUAGE);
+		        break;
+	    }
 	$infos = $movie->movieInfos($_GET['code']);
+    debug('update.php ' . $infos);
 	$sql = sprintf("UPDATE movies SET 
 	id_movie='%s',
 	name='%s',

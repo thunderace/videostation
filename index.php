@@ -65,6 +65,7 @@ $nb_entree_bdd = mysql_num_rows($req);
 <script type="text/javascript" src="js/jquery.nyroModal.custom.min.js"></script>
 <script type="text/javascript" src="js/jquery.tools.min.js"></script>
 <script type="text/javascript" src="js/jquery.ui.popup.js"></script>
+
 </head>
 <body>
 <div id="indexing"></div>
@@ -157,7 +158,7 @@ $nb_entree_bdd = mysql_num_rows($req);
 <?php
 $style = "";
 if(al_is_serie($dir)){
-    $src = banner_serie();
+    $src = banner_serie($dir);
     if(!empty($src)) 
         $style='style="background-image:url('.$src.');" class="banner"';
 }
@@ -406,7 +407,7 @@ $(document).ready(function(){
         index_all();   
     } else {
         if (isset($_GET['indexhere'])) {
-            debug($dir);
+            debug("indexhere :" . $dir);
             index_auto($dir,$HIDDEN_FILES,$EXT,$SERIES_DIR, 1);
         } else {
             if($INDEXATION_AUTO) 

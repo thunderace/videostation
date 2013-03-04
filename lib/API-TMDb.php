@@ -125,6 +125,7 @@ public function movieInfos($id){
         $director = "";
         $actors = "";
 		$this->content = @file_get_contents($this->get_url_movie($id));
+        debug ("TMDB movieInfo " .$this->get_url_movie($id));
 		//if($this->content == FALSE) $this->content = file_get_contents($this->get_url_movie($id));
 		$i=1;
 		while($this->content === FALSE){
@@ -136,6 +137,10 @@ public function movieInfos($id){
 			throw new Exception('Failed to catch infos');
 		}
 		$this->data = json_decode($this->content,true);
+//		debug(var_dump($this->data));
+		if ($this->data[0]  == "Nothing found.")
+			throw new Exception('Failed to catch infos');
+		
 		$annee = explode('-',$this->data['0']['released']);
 		
 		$time[0] = floor($this->data['0']['runtime']/60);//heure

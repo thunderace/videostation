@@ -9,13 +9,13 @@ connect($HOST_SQL, $USER_SQL,$PASSWORD_SQL,$DATABASE);
 $link=addslashes(urldecode($_GET['link']));
 $dir=$_GET['rep'];
 if (al_is_serie($dir)){
-    $sql = "SELECT * FROM series WHERE link='".$link."'";
+    $sql = "SELECT * FROM series WHERE link='".mysql_real_escape_string($link)."' AND dir='" . mysql_real_escape_string($dir) . "'";
     $req = mysql_query($sql) or die ('Erreur sql '.$sql.' '.mysql_error());
     $infos = mysql_fetch_array($req);
     $serie = true;
 } else {
     $genres = "";
-    $sql = "SELECT * FROM movies WHERE link='".$link."'";
+    $sql = "SELECT * FROM movies WHERE link='".mysql_real_escape_string($link)."' AND dir='" . mysql_real_escape_string($dir) . "'";
     $req = mysql_query($sql) or die ('Erreur sql '.$sql.' '.mysql_error());
     $infos = mysql_fetch_array($req);
     $serie = false;

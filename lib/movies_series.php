@@ -4,6 +4,7 @@ require_once('config.php');
 require_once('system_config.php');
 require_once('API-allocine.php');
 require_once('API-TMDb.php');
+require_once('API-TMDbV3.php');
 require_once('functions.php');
 require_once('/volume1/web/lib/PhpConsole/PhpConsole.php');
 PhpConsole::start(true, true, dirname(__FILE__));
@@ -52,6 +53,19 @@ function movies($dir, $link, $force) {
     		break;
     	}
     	$recherche = $movies->movieSearch(keywordsAdapt($link,$DELETED_WORDS,1));
+        if(empty($recherche['code'])) {
+            debug ("Switching to other DDB");
+            switch($MOVIES_DATABASE){
+        		case 'Allocine':
+            	$movies = new TMDb($LANGUAGE);
+        		break;
+        		
+        		case 'TMDb':
+            	$movies = new Allocine($LANGUAGE);
+        		break;
+        	}
+        	$recherche = $movies->movieSearch(keywordsAdapt($link,$DELETED_WORDS,1));
+        }
     	if(empty($recherche['code'])) { //si aucun film trouve
     		$sql = "INSERT INTO movies VALUES(
     		'0',
@@ -72,8 +86,10 @@ function movies($dir, $link, $force) {
     		\"".mysql_real_escape_string(rtrim($dir, DIRECTORY_SEPARATOR))."\",
     		\"".$MOVIES_DATABASE."\")";
     		mysql_query ($sql) or die('5.Erreur SQL !'.$sql.'<br>'.mysql_error());
+            return;
     	}
-    	else { //si film trouve 
+    	
+        { //si film trouve 
     		if(!empty($recherche['affiche'])){
     			//echo $recherche['affiche'];
     			if($MOVIES_DATABASE == 'Allocine'){
@@ -155,7 +171,7 @@ function movies($dir, $link, $force) {
 
 function series($dir, $link, $force) {
     global $SERIES_DATABASE, $LANGUAGE, $DELETED_WORDS, $USER_SQL,$PASSWORD_SQL,$DATABASE, $HOST_SQL, $ALWAYS_UPDATE;
-	
+	$onlyOneSeason = false;
 	connect($HOST_SQL, $USER_SQL,$PASSWORD_SQL,$DATABASE);
 
 	$sql = mysql_query("SELECT link FROM series WHERE link='".mysql_real_escape_string($link)."' AND dir='" . mysql_real_escape_string($dir) . "'");
@@ -181,19 +197,26 @@ function series($dir, $link, $force) {
 	$infos = array_reverse($infos);
 	$matches=array();
 	preg_match('#[0-9]{1,2}#',$infos[0],$matches);
-	$nbSeason = intval($matches[0]);
-	$recherche = $series->serieSearch(keywordsAdapt($infos[1],$DELETED_WORDS,1));//recherche serie
-	if (empty($recherche['code'])){
+    if(empty($matches[0])) {
+        // if no match assume that there is only one season (no season XX)
+        $nbSeason = 1;
+        $onlyOneSeason = true;
+        $recherche = $series->serieSearch(keywordsAdapt($infos[0],$DELETED_WORDS,1)); //recherche serie
+    } else {
+	    $nbSeason = intval($matches[0]);
+        $recherche = $series->serieSearch(keywordsAdapt($infos[1],$DELETED_WORDS,1)); //recherche serie
+    }
+    
+	if (empty($recherche['code'])) {
 		$sql = "INSERT INTO series VALUES('0','0','0','".addslashes($link)."','','','','','','','','','','','','','".$dir."','".$SERIES_DATABASE."')";
 		mysql_query ($sql) or die('1.Erreur SQL !'.$sql.'<br>'.mysql_error());
-	}
-	else{
+	} else {
 		$id=$recherche['code'];
 		$serie = $series->serieInfos($recherche['code']);//infos serie
 		if (empty($serie['code'])){
 			echo 'Erreur';
 		}
-		if(!empty($serie['affiche'])){
+		if(!empty($serie['affiche'])) { 
 			//echo $recherche['affiche'];
 			$img = explode('/',$serie['affiche']);
 			$end_url = '';
@@ -201,7 +224,6 @@ function series($dir, $link, $force) {
 				$end_url = $end_url.'/'.$img[$j];
 			}
 			$img = $img[0].'//'.$img[2].'/r_150_204'.$end_url;
-//			copy($img,'../images/poster_small/s-'.$serie['code'].'.jpg');
             savePoster($dir.'/'.$link, $img,$serie['code']);
 		}
 		$code_season = $serie['tabSaisons'][$nbSeason];
@@ -245,7 +267,12 @@ function series($dir, $link, $force) {
                 if (isset($matches[0]))
     				$matches[0] = $matches[0]{1}.$matches[0]{2};
 			}
-            if (empty($matches[0]))
+            if (empty($matches[0])){
+               $matches[0] = intval(keywordsAdapt(addslashes($link), $DELETED_WORDS));
+               debug("match - 1 : ". $matches[0]);
+            }
+    
+            if (empty($matches[0]) && $onlyOneSeason == false)
                 {
         		$sql = "INSERT INTO series VALUES(
     			'".$recherche['code']."',
@@ -276,10 +303,15 @@ function series($dir, $link, $force) {
 			$matches[0] = str_replace('E','',$matches[0]);
 			$matches[0] = str_replace('x','',$matches[0]);
 			$matches[0] = str_replace('X','',$matches[0]);
-			if((10-$matches[0])>0) $matches[0] = str_replace('0','',$matches[0]);
+			if((10-$matches[0])>0) 
+                $matches[0] = str_replace('0','',$matches[0]);
 			$nbEpisode = $matches[0];
+            if(empty($nbEpisode)) {
+                // not in SXXEXX format : try XX only
+            }
 			$code_episode = $season['tabEpisode'][$nbEpisode];
 			$id.='-'.$code_episode;
+            debug("code episode : " . $code_episode);
 			$episode = $series->episodeInfos($code_episode);//infos episode
 			if (empty($episode['code'])) {
 				echo 'Error : no code for episode';
