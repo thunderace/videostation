@@ -3,7 +3,7 @@ require_once('config.php');
 require_once('system_config.php');
 require_once('lang.php');
 
-require_once('/volume1/web/lib/PhpConsole/PhpConsole.php');
+require_once('PhpConsole.php');
 PhpConsole::start(true, true, dirname(__FILE__));
 
 $root = true;

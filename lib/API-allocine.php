@@ -38,8 +38,6 @@
 	$infos['bande-annonce']
 
 ******************************************************************************/
-require_once('/volume1/web/lib/PhpConsole/PhpConsole.php');
-PhpConsole::start(true, true, dirname(__FILE__));
 
 class AlloCine{
 

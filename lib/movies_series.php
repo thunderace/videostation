@@ -6,9 +6,6 @@ require_once('API-allocine.php');
 require_once('API-TMDb.php');
 require_once('API-TMDbV3.php');
 require_once('functions.php');
-require_once('/volume1/web/lib/PhpConsole/PhpConsole.php');
-PhpConsole::start(true, true, dirname(__FILE__));
-
 
 
 function index($dir, $link, $force) {
